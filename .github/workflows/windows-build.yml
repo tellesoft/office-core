@@ -45,13 +45,8 @@ jobs:
             exit /b 1
           )
 
-      - name: Package MSI
-        run: |
-          dir instdir
-          echo Skipping packaging logic for now.
-
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: tellesuite-installer
           path: instdir/**/*.msi
