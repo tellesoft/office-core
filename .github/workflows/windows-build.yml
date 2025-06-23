@@ -2,7 +2,8 @@ name: build
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
@@ -10,47 +11,41 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - name: Checkout source code
-      uses: actions/checkout@v3
+      - name: Checkout source code
+        uses: actions/checkout@v3
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
 
-    - name: Install prerequisites with Chocolatey
-      run: |
-        choco install -y git 7zip zip wget unzip curl
-        choco install -y make nasm strawberryperl activeperl
-        choco install -y jom ccache
+      - name: Install prerequisites with Chocolatey
+        run: |
+          choco install make nasm ccache --no-progress -y
 
-    - name: Prepare build environment
-      run: |
-        echo --disable-firebird-sdbc >> autogen.input
-        echo --enable-release-build >> autogen.input
-        echo --with-lang=en-US >> autogen.input
-        echo --without-help >> autogen.input
-        echo --without-myspell-dicts >> autogen.input
-        echo --disable-avmedia >> autogen.input
-        echo --with-parallelism=4 >> autogen.input
-        echo --enable-gtk3 >> autogen.input
-        echo --with-vendor=Tellesoft >> autogen.input
-        echo --with-product-name="Tellesoft Office Professional" >> autogen.input
-\
-- name: Configure LibreOffice
-  run: |
-    ./autogen.sh --disable-firebird-sdbc --enable-release-build --with-lang=en-US --without-help --without-myspell-dicts --disable-avmedia --with-parallelism=4 --enable-gtk3 --with-vendor="Tellesoft" --with-product-name="Tellesoft Office Professional" || (type config.log && exit 1)
+      - name: Prepare build environment
+        run: echo --disable-firebird-sdbc >> autogen.input
 
-    - name: Build LibreOffice
-      run: make
+      - name: Set up Visual Studio environment
+        run: |
+          call "%ProgramFiles(x86)%\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
 
-    - name: Package MSI installer
-      run: |
-        make clean package
-        7z a TellesoftOffice-Win64.zip instdir
+      - name: Configure LibreOffice
+        run: |
+          ./autogen.sh --disable-firebird-sdbc --enable-release-build --with-lang=en-US --without-help --without-myspell-dicts --disable-avmedia --with-parallelism=4 --enable-gtk3 --with-vendor="Tellesoft" --with-product-name="Tellesoft Office Professional" || (type config.log && exit 1)
 
-    - name: Upload installer
-      uses: actions/upload-artifact@v4
-      with:
-        name: TellesoftOffice-Win64
-        path: TellesoftOffice-Win64.zip
+      - name: Build LibreOffice
+        run: make
+
+      - name: Package MSI installer
+        run: |
+          dir instdir
+          dir workdir
+          echo "Packaging step here"
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: tellesuite-installer
+          path: instdir
+
