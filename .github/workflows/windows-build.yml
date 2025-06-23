@@ -2,41 +2,56 @@ name: Windows Build
 
 on:
   push:
-    branches: [ master ]
+    branches:
+      - main
   pull_request:
-    branches: [ master ]
+    branches:
+      - main
 
 jobs:
   build:
     runs-on: windows-latest
 
     steps:
-    - uses: actions/checkout@v3
+      - name: Checkout source code
+        uses: actions/checkout@v4
 
-    - name: Setup MSBuild & Visual Studio environment
-      uses: microsoft/setup-msbuild@v1
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
 
-    - name: Install Chocolatey & prerequisites
-      run: |
-        choco feature enable -n allowGlobalConfirmation
-        choco install make cmake git python ccache visualstudio-installer
+      - name: Install prerequisites with Chocolatey
+        run: |
+          choco install -y zip unzip make perl wget
+          refreshenv
 
-    - name: Prepare autogen.input
-      shell: bash
-      run: echo "--disable-firebird-sdbc" > autogen.input
+      - name: Prepare build environment
+        run: echo --disable-firebird-sdbc >> autogen.input
 
-    - name: Bootstrap / configure
-      shell: bash
-      run: |
-        ./autogen.sh --with-parallelism=4 --disable-firebird-sdbc
+      - name: Set up MSBuild
+        uses: microsoft/setup-msbuild@v1
 
-    - name: Build LibreOffice
-      shell: bash
-      run: |
-        make
+      - name: Configure LibreOffice
+        run: |
+          ./autogen.sh --with-external-tar=/tmp/lo-externalsrc \
+                       --disable-firebird-sdbc \
+                       --disable-online-update \
+                       --enable-release-build \
+                       --with-lang=en-US \
+                       --without-java
 
-    - name: Upload build artifact
-      uses: actions/upload-artifact@v3
-      with:
-        name: libreoffice-windows
-        path: /path/to/your/installer.msi
+      - name: Build LibreOffice
+        run: |
+          make -j4
+
+      - name: Package MSI installer
+        run: |
+          instdir/program/soffice.exe --headless --convert-to pdf somefile.odt
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Tellesoft-Office-Win64
+          path: instdir
+
