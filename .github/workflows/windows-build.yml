@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-windows:
+  build:
     runs-on: windows-latest
 
     steps:
@@ -14,32 +14,32 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.x'
 
       - name: Install prerequisites with Chocolatey
         run: |
-          choco install -y make autoconf automake libtool ccache
+          choco install -y git 7zip ccache
+          choco install -y --ignore-checksums make
 
       - name: Prepare build environment
         run: echo --disable-firebird-sdbc >> autogen.input
 
+      - name: Set up Visual Studio environment
+        uses: ilammy/msvc-dev-cmd@v1
+
       - name: Configure LibreOffice
-        shell: bash
-        run: |
-          ./autogen.sh --with-parallelism=2 --disable-firebird-sdbc
+        run: ./autogen.sh --with-parallelism=2 --disable-firebird-sdbc --enable-option-checking=fatal
 
       - name: Build LibreOffice
-        shell: bash
-        run: |
-          make build-nocheck
+        run: make -j2
 
       - name: Package MSI installer
-        shell: bash
         run: |
-          make pkg-msi
+          mkdir output
+          copy instdir\*.msi output\
 
       - name: Upload installer
         uses: actions/upload-artifact@v4
         with:
-          name: tellesuite-msi
-          path: instdir/install/*/*.msi
+          name: TellesoftOfficeInstaller
+          path: output/
