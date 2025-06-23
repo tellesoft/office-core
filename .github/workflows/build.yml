@@ -42,8 +42,9 @@ jobs:
         call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
       shell: cmd
 
-    - name: Configure LibreOffice
-      run: ./autogen.sh
+- name: Configure LibreOffice
+  run: |
+    ./autogen.sh --disable-firebird-sdbc --enable-release-build --with-lang=en-US --without-help --without-myspell-dicts --disable-avmedia --with-parallelism=4 --enable-gtk3 --with-vendor="Tellesoft" --with-product-name="Tellesoft Office Professional" || (type config.log && exit 1)
 
     - name: Build LibreOffice
       run: make
