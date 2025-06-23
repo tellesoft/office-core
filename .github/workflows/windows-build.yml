@@ -1,45 +1,40 @@
-name: Build Tellesoft Office for Windows
+name: build-windows
 
 on:
   workflow_dispatch:
   push:
-    branches:
-      - master  # or 'main' if that's your default
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
 
 jobs:
-  build-windows:
+  build:
     runs-on: windows-latest
 
     steps:
-      - name: Checkout source code
-        uses: actions/checkout@v4
+    - name: Post Checkout source code
+      uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
+    - name: Install prerequisites
+      shell: pwsh
+      run: |
+        choco install -y ninja
+        choco install -y ccache
 
-      - name: Install prerequisites
-        run: |
-          choco install -y strawberryperl
-          choco install -y make
-          choco install -y 7zip
-          choco install -y git
-          choco install -y ninja
-          choco install -y wget
-          choco install -y visualstudio2022buildtools --package-parameters "--add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --includeRecommended --includeOptional"
+    - name: Configure and build
+      shell: pwsh
+      run: |
+        ./autogen.sh
+        ./configure --with-external-tar=external/tarballs --with-parallelism=4
+        make
 
-      - name: Configure and build
-        run: |
-          ./autogen.sh --with-external-tar=/dev/null --without-help --without-myspell-dicts
-          make build-nocheck
+    - name: Package MSI installer
+      shell: pwsh
+      run: |
+        make MSI
 
-      - name: Package MSI installer
-        run: |
-          make cmd cmd=package
-
-      - name: Upload Installer
-        uses: actions/upload-artifact@v4
-        with:
-          name: TellesoftOffice-Windows-Installer
-          path: instsetoo_native/**/*.msi
+    - name: Upload Installer
+      uses: actions/upload-artifact@v4
+      with:
+        name: tellesoffice-windows-installer
+        path: instdir/*.msi
