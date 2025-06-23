@@ -36,9 +36,7 @@ jobs:
         echo --enable-gtk3 >> autogen.input
         echo --with-vendor=Tellesoft >> autogen.input
         echo --with-product-name="Tellesoft Office Professional" >> autogen.input
-
- 
-
+\
     - name: Configure LibreOffice
       run: ./autogen.sh
 
