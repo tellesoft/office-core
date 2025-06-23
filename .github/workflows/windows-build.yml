@@ -12,7 +12,7 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - name: Post Checkout source code
+    - name: Checkout source
       uses: actions/checkout@v4
 
     - name: Install prerequisites
@@ -21,16 +21,28 @@ jobs:
         choco install -y ninja
         choco install -y ccache
 
-    - name: Configure and build
-      shell: pwsh
+    - name: Set up autogen.input
       run: |
-        ./autogen.sh
-        ./configure --with-external-tar=external/tarballs --with-parallelism=4
+        echo --with-parallelism=4 > autogen.input
+        echo --disable-firebird-sdbc >> autogen.input
+        echo --disable-pdfium >> autogen.input
+
+    - name: Bootstrap build
+      shell: cmd
+      run: |
+        call winenv.bat
+        python3 ./autogen.py
+
+    - name: Build
+      shell: cmd
+      run: |
+        call winenv.bat
         make
 
     - name: Package MSI installer
-      shell: pwsh
+      shell: cmd
       run: |
+        call winenv.bat
         make MSI
 
     - name: Upload Installer
