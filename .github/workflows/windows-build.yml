@@ -1,56 +1,46 @@
-name: Build Windows
+name: build
 
 on:
-  push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
+  workflow_dispatch:
 
 jobs:
   build:
+    name: Windows Build
     runs-on: windows-latest
 
     steps:
-    - name: Checkout source code
-      uses: actions/checkout@v4
+      - name: Checkout source
+        uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
+      - name: Install prerequisites
+        run: |
+          choco install -y git wget make ccache
+          choco install -y "visualstudio2022buildtools" --package-parameters "--add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --includeRecommended --includeOptional"
 
-    - name: Install prerequisites with Chocolatey
-      shell: powershell
-      run: |
-        choco install -y git make nasm unzip wget
-        choco install -y visualstudio2022buildtools
-        choco install -y visualstudio2022-workload-vctools
-        choco install -y ccache
+      - name: Prepare build environment
+        shell: bash
+        run: echo --disable-firebird-sdbc >> autogen.input
 
-    - name: Prepare build environment
-      shell: powershell
-      run: |
-        echo --disable-firebird-sdbc >> autogen.input
-        echo --with-parallelism=2 >> autogen.input
+      - name: Configure and build
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
+          bash -c "./autogen.sh --with-parallelism=2 --disable-firebird-sdbc"
 
-    - name: Configure and build
-      shell: cmd
-      run: |
-        "C:\Program Files\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat" &&
-        call autogen.sh --with-parallelism=2 --disable-firebird-sdbc
+      - name: Compile LibreOffice
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
+          bash -c "make"
 
-    - name: Compile LibreOffice
-      shell: cmd
-      run: |
-        call make
+      - name: Package MSI installer
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
+          bash -c "make package"
 
-    - name: Package MSI installer
-      shell: cmd
-      run: |
-        call instdir\program\soffice.exe /create_msi_installer
-
-    - name: Upload Installer
-      uses: actions/upload-artifact@v4
-      with:
-        name: TellesoftOffice-Windows
-        path: ./instdir
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: tellesuite-windows-msi
+          path: instdir/*.msi
