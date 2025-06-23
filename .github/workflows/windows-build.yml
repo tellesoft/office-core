@@ -1,4 +1,4 @@
-name: build
+name: Windows Build
 
 on:
   workflow_dispatch:
@@ -6,11 +6,11 @@ on:
 jobs:
   build:
     runs-on: windows-latest
+    defaults:
+      run:
+        shell: cmd
 
     steps:
-      - name: Set up job
-        run: echo "Starting Windows Build..."
-
       - name: Checkout source code
         uses: actions/checkout@v3
 
@@ -19,43 +19,39 @@ jobs:
         with:
           python-version: '3.x'
 
-      - name: Install prerequisites with Chocolatey
+      - name: Install prerequisites
         run: |
           choco install -y make
           choco install -y ninja
-          choco install -y ccache
           choco install -y zip
 
       - name: Prepare build environment
         run: echo --disable-firebird-sdbc >> autogen.input
 
       - name: Set up Visual Studio environment
-        shell: cmd
         run: |
-          "%ProgramFiles(x86)%\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
+          call "%ProgramFiles(x86)%\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
 
       - name: Configure LibreOffice
         run: |
-          ./autogen.sh --enable-win64 --disable-firebird-sdbc --with-lang=en-US --with-product-name="Tellesoft Office" --with-vendor="Tellesoft Inc." --enable-dbgutil
+          bash ./autogen.sh --enable-win64 --with-lang=en-US --disable-firebird-sdbc --with-product-name="Tellesoft Office" --with-vendor="Tellesoft Inc."
 
       - name: Build LibreOffice
-        run: make
-
-      - name: Package MSI installer
         run: |
-          instdir/program/soffice.exe --headless --convert-to msi *.msi
+          if exist Makefile (
+            make
+          ) else (
+            echo ERROR: Makefile not found. autogen.sh probably failed.
+            exit /b 1
+          )
 
-      - name: Upload installer
+      - name: Package MSI
+        run: |
+          dir instdir
+          echo Skipping packaging logic for now.
+
+      - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
           name: tellesuite-installer
           path: instdir/**/*.msi
-
-      - name: Post Set up Python
-        run: python --version
-
-      - name: Post Checkout source code
-        run: git version
-
-      - name: Complete job
-        run: echo "Build process complete"
