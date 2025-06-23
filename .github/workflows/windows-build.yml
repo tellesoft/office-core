@@ -1,41 +1,45 @@
-name: Windows Build (Tellesoft Office)
+name: Build Tellesoft Office for Windows
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - master  # or 'main' if that's your default
 
 jobs:
   build-windows:
-    runs-on: windows-2022
+    runs-on: windows-latest
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+      - name: Checkout source code
+        uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.10'
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
 
-    - name: Install required packages
-      run: |
-        choco install -y git make perl nasm wget unzip
-        choco install -y visualstudio2022buildtools visualstudio2022-workload-vctools
+      - name: Install prerequisites
+        run: |
+          choco install -y strawberryperl
+          choco install -y make
+          choco install -y 7zip
+          choco install -y git
+          choco install -y ninja
+          choco install -y wget
+          choco install -y visualstudio2022buildtools --package-parameters "--add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --includeRecommended --includeOptional"
 
-    - name: Bootstrap
-      run: |
-        git config --global core.autocrlf false
-        ./autogen.sh --with-lang=en-US --with-theme=colibre --without-help --without-myspell-dicts
+      - name: Configure and build
+        run: |
+          ./autogen.sh --with-external-tar=/dev/null --without-help --without-myspell-dicts
+          make build-nocheck
 
-    - name: Build Tellesoft Office (no tests)
-      run: |
-        make build-nocheck
+      - name: Package MSI installer
+        run: |
+          make cmd cmd=package
 
-    - name: Create Windows installer (MSI)
-      run: |
-        make installer
-
-    - name: Upload Installer
-      uses: actions/upload-artifact@v4
-      with:
-        name: TellesoftOffice-Windows-Installer
-        path: instsetoo_native/**/*.msi
+      - name: Upload Installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: TellesoftOffice-Windows-Installer
+          path: instsetoo_native/**/*.msi
