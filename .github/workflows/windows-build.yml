@@ -1,6 +1,8 @@
 name: build
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 
 jobs:
@@ -8,37 +10,47 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - name: Checkout source code
-        uses: actions/checkout@v4
+    - name: Checkout source code
+      uses: actions/checkout@v3
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.x'
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
 
-      - name: Install prerequisites with Chocolatey
-        run: |
-          choco install -y git 7zip ccache make
+    - name: Install prerequisites with Chocolatey
+      run: |
+        choco install -y git 7zip zip wget unzip curl
+        choco install -y make nasm strawberryperl activeperl
+        choco install -y jom ccache
+        choco install -y visualstudio2022buildtools --package-parameters "--add Microsoft.VisualStudio.Workload.VCTools"
 
-      - name: Prepare build environment
-        run: echo --disable-firebird-sdbc >> autogen.input
+    - name: Prepare build environment
+      run: |
+        echo --disable-firebird-sdbc >> autogen.input
+        echo --enable-release-build >> autogen.input
+        echo --with-lang=en-US >> autogen.input
+        echo --without-help >> autogen.input
+        echo --without-myspell-dicts >> autogen.input
+        echo --disable-avmedia >> autogen.input
+        echo --with-parallelism=4 >> autogen.input
+        echo --enable-gtk3 >> autogen.input
+        echo --with-vendor=Tellesoft >> autogen.input
+        echo --with-product-name="Tellesoft Office Professional" >> autogen.input
 
-      - name: Set up Visual Studio environment
-        uses: ilammy/msvc-dev-cmd@v1
+    - name: Configure LibreOffice
+      run: ./autogen.sh
 
-      - name: Configure LibreOffice
-        run: ./autogen.sh --with-parallelism=2 --disable-firebird-sdbc --enable-option-checking=fatal
+    - name: Build LibreOffice
+      run: make
 
-      - name: Build LibreOffice
-        run: make -j2
+    - name: Package MSI installer
+      run: |
+        make clean package
+        7z a TellesoftOffice-Win64.zip instdir
 
-      - name: Package MSI installer
-        run: |
-          mkdir output
-          copy instdir\*.msi output\
-
-      - name: Upload installer
-        uses: actions/upload-artifact@v4
-        with:
-          name: TellesoftOfficeInstaller
-          path: output/
+    - name: Upload installer
+      uses: actions/upload-artifact@v4
+      with:
+        name: TellesoftOffice-Win64
+        path: TellesoftOffice-Win64.zip
