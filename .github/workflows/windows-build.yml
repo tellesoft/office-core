@@ -1,8 +1,7 @@
+
 name: build-windows
 
 on:
-  push:
-    branches: [ master ]
   workflow_dispatch:
 
 jobs:
@@ -10,39 +9,38 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - name: Checkout repo
+    - name: Checkout source code
       uses: actions/checkout@v4
 
-    - name: Install MSYS2
-      uses: msys2/setup-msys2@v2
-      with:
-        install: >-
-          base-devel
-          mingw-w64-x86_64-toolchain
-          git
-          autoconf
-          automake
-          libtool
-          pkg-config
-          make
-          unzip
-          wget
-        msystem: MINGW64
-        update: true
-
-    - name: Configure and build
-      shell: msys2 {0}
+    - name: Install prerequisites with Chocolatey
       run: |
-        ./autogen.sh --with-parallelism=2 --disable-firebird-sdbc
-        make build-nocheck
+        choco install -y cygwin
+        choco install -y make
+        choco install -y visualstudio2022buildtools
+        choco install -y git python3
+        choco install -y ccache
 
-    - name: Package installer
-      shell: msys2 {0}
+    - name: Add Cygwin to PATH
       run: |
-        make installer
+        echo "C:\tools\cygwin\bin" >> $env:GITHUB_PATH
 
-    - name: Upload installer
+    - name: Prepare autogen.input
+      run: echo '--disable-firebird-sdbc' >> autogen.input
+
+    - name: Configure with autogen.sh
+      shell: cmd
+      run: |
+        call "C:\Program Files\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
+        bash ./autogen.sh
+
+    - name: Build LibreOffice (Tellesoft)
+      shell: cmd
+      run: |
+        call "C:\Program Files\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
+        make
+
+    - name: Upload MSI Installer
       uses: actions/upload-artifact@v4
       with:
-        name: tellesoffice-windows-installer
-        path: instdir/*.msi
+        name: tellesuite-windows-msi
+        path: instdir
