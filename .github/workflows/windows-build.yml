@@ -1,0 +1,41 @@
+name: Windows Build (Tellesoft Office)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-2022
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Install required packages
+      run: |
+        choco install -y git make perl nasm wget unzip
+        choco install -y visualstudio2022buildtools visualstudio2022-workload-vctools
+
+    - name: Bootstrap
+      run: |
+        git config --global core.autocrlf false
+        ./autogen.sh --with-lang=en-US --with-theme=colibre --without-help --without-myspell-dicts
+
+    - name: Build Tellesoft Office (no tests)
+      run: |
+        make build-nocheck
+
+    - name: Create Windows installer (MSI)
+      run: |
+        make installer
+
+    - name: Upload Installer
+      uses: actions/upload-artifact@v3
+      with:
+        name: TellesoftOffice-Windows-Installer
+        path: instsetoo_native/**/*.msi
