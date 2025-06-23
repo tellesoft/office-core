@@ -1,13 +1,10 @@
-name: Build Windows Installer
+name: build
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - master
 
 jobs:
-  build:
+  build-windows:
     runs-on: windows-latest
 
     steps:
@@ -21,35 +18,28 @@ jobs:
 
       - name: Install prerequisites with Chocolatey
         run: |
-          choco install -y make
-          choco install -y winflexbison3
-          choco install -y ccache
-          choco install -y 7zip
-          choco install -y zip
+          choco install -y make autoconf automake libtool ccache
 
       - name: Prepare build environment
         run: echo --disable-firebird-sdbc >> autogen.input
 
-      - name: Set up Visual Studio environment
-        shell: cmd
-        run: |
-          call "C:\Program Files\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
-          echo VS environment initialized.
-
       - name: Configure LibreOffice
         shell: bash
-        run: ./autogen.sh --with-parallelism=2 --disable-firebird-sdbc
+        run: |
+          ./autogen.sh --with-parallelism=2 --disable-firebird-sdbc
 
       - name: Build LibreOffice
         shell: bash
-        run: make
+        run: |
+          make build-nocheck
 
       - name: Package MSI installer
         shell: bash
-        run: make package
+        run: |
+          make pkg-msi
 
       - name: Upload installer
         uses: actions/upload-artifact@v4
         with:
-          name: Tellesoft-Office-Windows
-          path: instdir/install/en-US/*.msi
+          name: tellesuite-msi
+          path: instdir/install/*/*.msi
