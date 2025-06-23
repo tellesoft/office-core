@@ -18,10 +18,10 @@ jobs:
           choco install -y visualstudio2022buildtools --package-parameters "--add Microsoft.VisualStudio.Component.VC.Tools.x86.x64"
 
       - name: Prepare build environment
-        shell: bash
         run: echo --disable-firebird-sdbc >> autogen.input
+        shell: bash
 
-      - name: Configure and build
+      - name: Configure LibreOffice
         shell: cmd
         run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
@@ -33,7 +33,7 @@ jobs:
           call "C:\Program Files\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
           bash -c "make"
 
-      - name: Package MSI installer
+      - name: Package MSI Installer
         shell: cmd
         run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
