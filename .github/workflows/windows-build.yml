@@ -1,47 +1,47 @@
 name: build-windows
 
 on:
-  workflow_dispatch:
   push:
     branches: [ master ]
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: windows-latest
 
     steps:
-    - name: Checkout repository
+    - name: Checkout repo
       uses: actions/checkout@v4
 
-    - name: Install dependencies
-      run: |
-        choco install -y ccache
-        choco install -y ninja
-        choco install -y git
-        choco install -y make
+    - name: Install MSYS2
+      uses: msys2/setup-msys2@v2
+      with:
+        install: >-
+          base-devel
+          mingw-w64-x86_64-toolchain
+          git
+          autoconf
+          automake
+          libtool
+          pkg-config
+          make
+          unzip
+          wget
+        msystem: MINGW64
+        update: true
 
-    - name: Write autogen.input
+    - name: Configure and build
+      shell: msys2 {0}
       run: |
-        echo --disable-firebird-sdbc >> autogen.input
-        echo --disable-pdfium >> autogen.input
-        echo --with-parallelism=2 >> autogen.input
-
-    - name: Configure with autogen
-      shell: bash
-      run: |
-        ./autogen.sh
-
-    - name: Build with make
-      shell: bash
-      run: |
+        ./autogen.sh --with-parallelism=2 --disable-firebird-sdbc
         make build-nocheck
 
     - name: Package installer
-      shell: bash
+      shell: msys2 {0}
       run: |
         make installer
 
-    - name: Upload artifact
+    - name: Upload installer
       uses: actions/upload-artifact@v4
       with:
         name: tellesoffice-windows-installer
