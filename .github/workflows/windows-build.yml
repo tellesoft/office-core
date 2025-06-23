@@ -18,8 +18,7 @@ jobs:
 
       - name: Install prerequisites with Chocolatey
         run: |
-          choco install -y git 7zip ccache
-          choco install -y --ignore-checksums make
+          choco install -y git 7zip ccache make
 
       - name: Prepare build environment
         run: echo --disable-firebird-sdbc >> autogen.input
