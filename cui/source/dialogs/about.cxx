@@ -78,7 +78,7 @@ AboutDialog::AboutDialog(weld::Window *pParent)
   OUString sbuildId = GetBuildString();
   if (IsStringValidGitHash(sbuildId)) {
     const tools::Long nMaxChar = 25;
-    m_pBuildLabel->set_uri("https://gerrit.libreoffice.org/gitweb?p=core.git;a=log;h="
+    m_pBuildLabel->set_uri("https://github.com/tellesoft/office-core"
                            + sbuildId);
     m_pBuildLabel->set_label(sbuildId.getLength() > nMaxChar ? sbuildId.replaceAt(
                                  nMaxChar, sbuildId.getLength() - nMaxChar, u"...")
@@ -153,7 +153,7 @@ OUString AboutDialog::GetVersionString() {
   OUString sVersion = CuiResId(TranslateId(nullptr, "%ABOUTBOXPRODUCTVERSION%ABOUTBOXPRODUCTVERSIONSUFFIX")) + " (" + arch + ")";
 
 #if HAVE_FEATURE_COMMUNITY_FLAVOR
-  sVersion += " / LibreOffice Community";
+  sVersion += " / Tellesoft Office";
 #endif
 
   return sVersion;
