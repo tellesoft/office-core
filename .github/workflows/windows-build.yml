@@ -4,48 +4,44 @@ on:
   workflow_dispatch:
   push:
     branches: [ master ]
-  pull_request:
-    branches: [ master ]
 
 jobs:
   build:
     runs-on: windows-latest
 
     steps:
-    - name: Checkout source
+    - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Install prerequisites
-      shell: pwsh
+    - name: Install dependencies
       run: |
-        choco install -y ninja
         choco install -y ccache
+        choco install -y ninja
+        choco install -y git
+        choco install -y make
 
-    - name: Set up autogen.input
+    - name: Write autogen.input
       run: |
-        echo --with-parallelism=4 > autogen.input
         echo --disable-firebird-sdbc >> autogen.input
         echo --disable-pdfium >> autogen.input
+        echo --with-parallelism=2 >> autogen.input
 
-    - name: Bootstrap build
-      shell: cmd
+    - name: Configure with autogen
+      shell: bash
       run: |
-        call winenv.bat
-        python3 ./autogen.py
+        ./autogen.sh
 
-    - name: Build
-      shell: cmd
+    - name: Build with make
+      shell: bash
       run: |
-        call winenv.bat
-        make
+        make build-nocheck
 
-    - name: Package MSI installer
-      shell: cmd
+    - name: Package installer
+      shell: bash
       run: |
-        call winenv.bat
-        make MSI
+        make installer
 
-    - name: Upload Installer
+    - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: tellesoffice-windows-installer
