@@ -2,56 +2,52 @@ name: Windows Build
 
 on:
   push:
-    branches:
-      - main
+    branches: [ master ]
   pull_request:
-    branches:
-      - main
+    branches: [ master ]
 
 jobs:
   build:
     runs-on: windows-latest
+    env:
+      MSBUILD_PATH: 'C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat'
 
     steps:
-      - name: Checkout source code
-        uses: actions/checkout@v4
+    - name: Checkout source
+      uses: actions/checkout@v3
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.x
 
-      - name: Install prerequisites with Chocolatey
-        run: |
-          choco install -y zip unzip make perl wget
-          refreshenv
+    - name: Install Chocolatey packages
+      run: |
+        choco install -y make python winflexbison7 git cmake
 
-      - name: Prepare build environment
-        run: echo --disable-firebird-sdbc >> autogen.input
+    - name: Prepare autogen.input
+      run: echo --disable-firebird-sdbc >> autogen.input
 
-      - name: Set up MSBuild
-        uses: microsoft/setup-msbuild@v1
+    - name: Initialize MSVC environment
+      run: call "%MSBUILD_PATH%" && where cl
 
-      - name: Configure LibreOffice
-        run: |
-          ./autogen.sh --with-external-tar=/tmp/lo-externalsrc \
-                       --disable-firebird-sdbc \
-                       --disable-online-update \
-                       --enable-release-build \
-                       --with-lang=en-US \
-                       --without-java
+    - name: Run autogen and configure
+      shell: bash
+      run: |
+        ./autogen.sh @autogen.input --enable-option-checking=fatal \
+          --disable-java --disable-python \
+          --host=x86_64-w64-mingw32
 
-      - name: Build LibreOffice
-        run: |
-          make -j4
+    - name: Build LibreOffice
+      shell: bash
+      run: make -j%NUMBER_OF_PROCESSORS%
 
-      - name: Package MSI installer
-        run: |
-          instdir/program/soffice.exe --headless --convert-to pdf somefile.odt
+    - name: Package MSI
+      shell: bash
+      run: make release-win64
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: Tellesoft-Office-Win64
-          path: instdir
-
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: LibreOffice-Windows
+        path: instsetoo_Win_x64_install\*.msi
