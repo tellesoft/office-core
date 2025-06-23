@@ -1,46 +1,55 @@
-name: build
+name: Build Windows Installer
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - master
 
 jobs:
   build:
-    name: Windows Build
     runs-on: windows-latest
 
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
       - name: Install prerequisites with Chocolatey
         run: |
-          choco install -y git make wget ccache
-          choco install -y visualstudio2022buildtools --package-parameters "--add Microsoft.VisualStudio.Component.VC.Tools.x86.x64"
+          choco install -y make
+          choco install -y winflexbison3
+          choco install -y ccache
+          choco install -y 7zip
+          choco install -y zip
 
       - name: Prepare build environment
         run: echo --disable-firebird-sdbc >> autogen.input
-        shell: bash
+
+      - name: Set up Visual Studio environment
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
+          echo VS environment initialized.
 
       - name: Configure LibreOffice
-        shell: cmd
-        run: |
-          call "C:\Program Files\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
-          bash -c "./autogen.sh --with-parallelism=2 --disable-firebird-sdbc"
+        shell: bash
+        run: ./autogen.sh --with-parallelism=2 --disable-firebird-sdbc
 
-      - name: Compile LibreOffice
-        shell: cmd
-        run: |
-          call "C:\Program Files\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
-          bash -c "make"
+      - name: Build LibreOffice
+        shell: bash
+        run: make
 
-      - name: Package MSI Installer
-        shell: cmd
-        run: |
-          call "C:\Program Files\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
-          bash -c "make package"
+      - name: Package MSI installer
+        shell: bash
+        run: make package
 
-      - name: Upload Installer
+      - name: Upload installer
         uses: actions/upload-artifact@v4
         with:
-          name: tellesuite-msi
-          path: instdir/*.msi
+          name: Tellesoft-Office-Windows
+          path: instdir/install/en-US/*.msi
