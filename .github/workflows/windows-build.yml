@@ -1,5 +1,4 @@
-
-name: build-windows
+name: build
 
 on:
   workflow_dispatch:
@@ -9,38 +8,56 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - name: Checkout source code
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Install prerequisites with Chocolatey
-      run: |
-        choco install -y cygwin
-        choco install -y make
-        choco install -y visualstudio2022buildtools
-        choco install -y git python3
-        choco install -y ccache
+      - name: Install Chocolatey packages
+        run: |
+          Set-ExecutionPolicy Bypass -Scope Process -Force
+          iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
+          choco install -y cygwin
+          choco install -y make git unzip python3
 
-    - name: Add Cygwin to PATH
-      run: |
-        echo "C:\tools\cygwin\bin" >> $env:GITHUB_PATH
+      - name: Setup Cygwin environment
+        run: |
+          $env:Path += ";C:\tools\cygwin\bin"
+          C:\tools\cygwin\setup-x86_64.exe -q -P make,gcc-g++,git,python3,autoconf,automake,libtool,unzip,tar
 
-    - name: Prepare autogen.input
-      run: echo '--disable-firebird-sdbc' >> autogen.input
+      - name: Configure and bootstrap
+        shell: bash
+        run: |
+          ./autogen.sh --with-parallelism=4 \
+            --without-help \
+            --without-myspell-dicts \
+            --disable-firebird-sdbc \
+            --disable-odk \
+            --disable-postgresql-sdbc \
+            --disable-dconf \
+            --disable-gstreamer-1-0 \
+            --disable-sdremote \
+            --disable-scripting-beanshell \
+            --disable-scripting-javascript \
+            --disable-xmlsecurity \
+            --disable-lpsolve \
+            --disable-collada \
+            --disable-coinmp \
+            --disable-evolution2 \
+            --disable-gio \
+            --disable-kf5 \
+            --disable-gtk3 \
+            --disable-qt5 \
+            --disable-firebird \
+            --disable-gtk3-kde5 \
+            --disable-gio \
+            --disable-dbus
 
-    - name: Configure with autogen.sh
-      shell: cmd
-      run: |
-        call "C:\Program Files\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
-        bash ./autogen.sh
+      - name: Build Tellesoft Office
+        shell: bash
+        run: |
+          make -j$(nproc)
 
-    - name: Build LibreOffice (Tellesoft)
-      shell: cmd
-      run: |
-        call "C:\Program Files\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
-        make
-
-    - name: Upload MSI Installer
-      uses: actions/upload-artifact@v4
-      with:
-        name: tellesuite-windows-msi
-        path: instdir
+      - name: Upload Installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: tellesoffice-windows-build
+          path: instdir
