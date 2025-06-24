@@ -17,32 +17,41 @@ jobs:
     - name: Set up MSBuild (preinstalled use only)
       uses: microsoft/setup-msbuild@v1.3.1
 
-    - name: Download and install Cygwin
-      shell: powershell
-      run: |
-        Invoke-WebRequest -Uri https://cygwin.com/setup-x86_64.exe -OutFile cygwin-installer.exe
-        ./cygwin-installer.exe -qn -R C:\cygwin64 -l C:\cygwin64\var\cache\setup -s http://mirrors.kernel.org/sourceware/cygwin/ -P autoconf,automake,gcc-core,gcc-g++,make,tar,pkgconf,bison,flex,git,perl,python3,unzip,zip,which,wget
+    - name: Install Cygwin and packages
+      uses: cygwin/cygwin-install-action@v4
+      with:
+        packages: >-
+          autoconf
+          automake
+          gcc-core
+          gcc-g++
+          make
+          tar
+          pkgconf
+          bison
+          flex
+          git
+          perl
+          python3
+          unzip
+          zip
+          which
+          wget
 
     - name: Prepare autogen.input
-      shell: bash
       run: |
         echo '--with-theme=colibre' > autogen.input
         echo '--enable-release-build' >> autogen.input
+      shell: bash
 
     - name: Run autogen.sh using Cygwin
-      shell: cmd
-      run: |
-        C:\cygwin64\bin\bash -lc "cd $PWD && ./autogen.sh"
+      shell: C:\cygwin\bin\bash.exe -leo pipefail -c "cd /cygdrive/d/a/office-core/office-core && ./autogen.sh"
 
     - name: Build LibreOffice (Tellesoft Office)
-      shell: cmd
-      run: |
-        C:\cygwin64\bin\bash -lc "cd $PWD && make build-nocheck -j$(nproc)"
+      shell: C:\cygwin\bin\bash.exe -leo pipefail -c "cd /cygdrive/d/a/office-core/office-core && make build-nocheck -j$(nproc)"
 
     - name: Package Installer (MSI)
-      shell: cmd
-      run: |
-        C:\cygwin64\bin\bash -lc "cd $PWD && make MSI_PACKAGE=1"
+      shell: C:\cygwin\bin\bash.exe -leo pipefail -c "cd /cygdrive/d/a/office-core/office-core && make MSI_PACKAGE=1"
 
     - name: Upload TellesoftOffice.msi
       uses: actions/upload-artifact@v4
