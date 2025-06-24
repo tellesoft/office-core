@@ -2,60 +2,62 @@ name: build
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: windows-2022
 
     steps:
-    - name: Checkout source code
-      uses: actions/checkout@v3
+      - name: Checkout source code
+        uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
+      - name: Set up MSBuild
+        uses: microsoft/setup-msbuild@v1.3.1
 
-    - name: Install prerequisites with Chocolatey
-      run: |
-        choco install -y git 7zip zip wget unzip curl
-        choco install -y make nasm strawberryperl activeperl
-        choco install -y jom ccache
+      - name: Download MSYS2
+        run: |
+          Invoke-WebRequest -Uri https://mirror.msys2.org/distrib/x86_64/msys2-base-x86_64-20240120.tar.xz -OutFile msys2.tar.xz
+          7z x msys2.tar.xz -so | 7z x -aoa -si -ttar -o"$env:GITHUB_WORKSPACE\msys64"
+          echo "$env:GITHUB_WORKSPACE\msys64\usr\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          echo "$env:GITHUB_WORKSPACE\msys64\mingw64\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
-    - name: Prepare build environment
-      run: |
-        echo --disable-firebird-sdbc >> autogen.input
-        echo --enable-release-build >> autogen.input
-        echo --with-lang=en-US >> autogen.input
-        echo --without-help >> autogen.input
-        echo --without-myspell-dicts >> autogen.input
-        echo --disable-avmedia >> autogen.input
-        echo --with-parallelism=4 >> autogen.input
-        echo --enable-gtk3 >> autogen.input
-        echo --with-vendor=Tellesoft >> autogen.input
-        echo --with-product-name="Tellesoft Office Professional" >> autogen.input
+      - name: Install pkgconf
+        run: |
+          Invoke-WebRequest -Uri https://github.com/pkgconf/pkgconf/releases/download/pkgconf-2.1.0/pkgconf-2.1.0-win64.zip -OutFile pkgconf.zip
+          Expand-Archive pkgconf.zip -DestinationPath "$env:GITHUB_WORKSPACE\pkgconf"
+          echo "$env:GITHUB_WORKSPACE\pkgconf" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
-    - name: Set up Visual Studio environment
-      run: |
-        call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-      shell: cmd
+      - name: Prepare autogen.input
+        run: |
+          echo '--with-external-tar="$env:GITHUB_WORKSPACE/ext_sources"' > autogen.input
+          echo '--enable-release-build' >> autogen.input
+          echo '--with-lang=en-US' >> autogen.input
+          echo '--disable-dependency-tracking' >> autogen.input
+          echo "PKG_CONFIG=$env:GITHUB_WORKSPACE\\pkgconf\\pkgconf.exe" >> autogen.input
 
-- name: Configure LibreOffice
-  run: |
-    ./autogen.sh --disable-firebird-sdbc --enable-release-build --with-lang=en-US --without-help --without-myspell-dicts --disable-avmedia --with-parallelism=4 --enable-gtk3 --with-vendor="Tellesoft" --with-product-name="Tellesoft Office Professional" || (type config.log && exit 1)
+      - name: Run autogen.sh inside MSYS2
+        shell: msys2 {0}
+        run: |
+          cd $GITHUB_WORKSPACE
+          ./autogen.sh
 
-    - name: Build LibreOffice
-      run: make
+      - name: Build LibreOffice (Tellesoft Office)
+        shell: msys2 {0}
+        run: |
+          cd $GITHUB_WORKSPACE
+          make
 
-    - name: Package MSI installer
-      run: |
-        make clean package
-        7z a TellesoftOffice-Win64.zip instdir
+      - name: Package Installer (MSI)
+        shell: msys2 {0}
+        run: |
+          cd $GITHUB_WORKSPACE
+          make MSIINSTALLERPRODUCTNAME=TellesoftOffice msi
 
-    - name: Upload installer
-      uses: actions/upload-artifact@v4
-      with:
-        name: TellesoftOffice-Win64
-        path: TellesoftOffice-Win64.zip
+      - name: Upload TellesoftOffice.msi
+        uses: actions/upload-artifact@v4
+        with:
+          name: TellesoftOfficeInstaller
+          path: '**/TellesoftOffice.msi'
