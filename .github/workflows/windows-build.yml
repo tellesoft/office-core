@@ -16,13 +16,15 @@ jobs:
 
       - name: Set up Python
         run: |
-          curl -o python-installer.exe https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe
-          ./python-installer.exe /quiet InstallAllUsers=1 PrependPath=1 Include_test=0
+          curl.exe -o python-installer.exe https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe
+          python-installer.exe /quiet InstallAllUsers=1 PrependPath=1 Include_test=0
 
       - name: Install winflexbison and 7zip manually
         run: |
-          curl -L -o winflexbison.zip https://github.com/lexxmark/winflexbison/releases/download/v2.5.22/win_flex_bison-2.5.22.zip
-          7z x winflexbison.zip -oC:\winflexbison
+          curl.exe -L -o winflexbison.zip https://github.com/lexxmark/winflexbison/releases/download/v2.5.22/win_flex_bison-2.5.22.zip
+          curl.exe -L -o 7zip.exe https://www.7-zip.org/a/7z2301-x64.exe
+          7zip.exe /S
+          tar -xf winflexbison.zip -C C:\winflexbison --strip-components=1
           echo "C:\winflexbison" | Out-File -Append $env:GITHUB_PATH
         shell: powershell
 
@@ -41,6 +43,8 @@ jobs:
             mingw-w64-x86_64-ninja
             mingw-w64-x86_64-libxslt
             mingw-w64-x86_64-wixl
+            autoconf
+            automake
 
       - name: Prepare autogen.input
         shell: bash
