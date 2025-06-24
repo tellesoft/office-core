@@ -2,18 +2,13 @@ name: Windows Build
 
 on:
   push:
-    branches:
-      - main
-  workflow_dispatch:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
   build:
-    runs-on: windows-2022
-
-    env:
-      LO_SOURCE_DIR: ${{ github.workspace }}\office-core
-      LO_OUTPUT_DIR: ${{ github.workspace }}\build
-      PYTHON: C:\Python311
+    runs-on: windows-latest
 
     steps:
       - name: Checkout source code
@@ -22,51 +17,38 @@ jobs:
       - name: Set up Python
         run: |
           curl -o python-installer.exe https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe
-          python-installer.exe /quiet InstallAllUsers=1 PrependPath=1 Include_test=0
-          echo "Python installed at: %PYTHON%"
+          .\python-installer.exe /quiet InstallAllUsers=1 PrependPath=1 Include_tcltk=1
 
       - name: Install winflexbison and 7zip manually
         run: |
-          curl -L -o winflexbison.zip https://github.com/lexxmark/winflexbison/releases/download/v2.5.22/win_flex_bison-2.5.22.zip
-          7z x winflexbison.zip -owinflexbison
-          echo "${{ github.workspace }}\winflexbison" >> $GITHUB_PATH
+          Invoke-WebRequest -Uri https://github.com/lexxmark/winflexbison/releases/download/v2.5.22/win_flex_bison-2.5.22.zip -OutFile flexbison.zip
+          Expand-Archive -Path flexbison.zip -DestinationPath C:\winflexbison
+          echo "C:\winflexbison" | Out-File -FilePath $env:GITHUB_PATH -Append
 
-          curl -L -o 7zip.msi https://www.7-zip.org/a/7z2201-x64.msi
-          msiexec /quiet /i 7zip.msi
+          Invoke-WebRequest -Uri https://www.7-zip.org/a/7z2301-x64.exe -OutFile 7zip.exe
+          Start-Process .\7zip.exe -ArgumentList "/S" -Wait
 
       - name: Set up MSVC environment
-        shell: cmd
-        run: |
-          "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat" && set
+        uses: microsoft/setup-msbuild@v1.3.1
 
       - name: Prepare autogen.input
         run: |
           echo --disable-firebird-sdbc >> autogen.input
-          echo --with-external-tar="${{ github.workspace }}\externals" >> autogen.input
 
       - name: Run autogen and configure
-        shell: cmd
         run: |
-          cd office-core
-          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-          ./autogen.sh --with-external-tar="${{ github.workspace }}\externals"
+          cmd /c "bash.exe ./autogen.sh"
 
       - name: Build LibreOffice
-        shell: cmd
         run: |
-          cd office-core
-          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-          make
+          cmd /c "make build-nocheck"
 
       - name: Package MSI
-        shell: cmd
         run: |
-          cd instsetoo_native
-          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-          build
+          cmd /c "make pkg"
 
-      - name: Upload installer
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: tellesoffice-windows-msi
-          path: office-core/instsetoo_native/**/install/en-US/*.msi
+          name: windows-msi
+          path: instdir
