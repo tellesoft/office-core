@@ -35,11 +35,6 @@ jobs:
           '--add', 'Microsoft.VisualStudio.Component.VC.Tools.x86.x64', `
           '--add', 'Microsoft.VisualStudio.Component.Windows10SDK.20348'
 
-    - name: Set MSVC environment
-      run: |
-        echo "C:\BuildTools\VC\Tools\MSVC" | Out-File -Append -Encoding ascii $env:GITHUB_PATH
-        echo "C:\BuildTools\VC\Auxiliary\Build" | Out-File -Append -Encoding ascii $env:GITHUB_PATH
-
     - name: Set up MSYS2 for autotools
       uses: msys2/setup-msys2@v2
       with:
@@ -60,12 +55,16 @@ jobs:
     - name: Prepare autogen.input
       run: echo "--disable-firebird-sdbc" >> autogen.input
 
-    - name: Run autogen.sh inside MSYS2 Bash
+    - name: Run autogen.sh inside MSYS2 with Visual Studio Environment
       shell: msys2 {0}
       run: |
-        export PATH="/c/BuildTools/VC/Tools/MSVC/*/bin/Hostx64/x64:$PATH"
-        export PKG_CONFIG=$(which pkgconf)
-        ./autogen.sh --with-lang=en-US --disable-firebird-sdbc
+        export "VSINSTALLDIR=/c/BuildTools"
+        export "VCVARS_PATH=/c/BuildTools/VC/Auxiliary/Build/vcvars64.bat"
+        if [ -f "$VCVARS_PATH" ]; then
+          cmd.exe /c "$VCVARS_PATH && bash -lc './autogen.sh --with-lang=en-US --disable-firebird-sdbc'"
+        else
+          echo "vcvars64.bat not found" && exit 1
+        fi
 
     - name: Build LibreOffice
       shell: msys2 {0}
