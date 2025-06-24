@@ -21,7 +21,7 @@ jobs:
           Invoke-WebRequest -Uri https://www.7-zip.org/a/7z2301-x64.exe -OutFile 7z.exe
           Start-Process .\7z.exe -ArgumentList "/S" -Wait
 
-      - name: Install MSYS2 (manual, latest official)
+      - name: Install MSYS2 (manual, no Chocolatey)
         run: |
           Invoke-WebRequest -Uri https://github.com/msys2/msys2-installer/releases/latest/download/msys2-x86_64-20240120.exe -OutFile msys2-installer.exe
           Start-Process .\msys2-installer.exe -ArgumentList "--root C:\msys64 --confirm-command --no-start" -Wait
@@ -57,13 +57,13 @@ jobs:
           "C:\Program Files (x86)\WiX Toolset v3.11\bin\light.exe" installer.wixobj -o TellesoftOffice.msi
 
       - name: Upload build directory
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: build-directory
           path: instdir
 
       - name: Upload MSI installer
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: TellesoftOfficeInstaller
           path: instdir/TellesoftOffice.msi
