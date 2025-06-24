@@ -1,3 +1,56 @@
+name: build
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        run: |
+          curl -o python-installer.exe https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe
+          ./python-installer.exe /quiet InstallAllUsers=1 PrependPath=1 Include_test=0
+
+      - name: Install winflexbison and 7zip manually
+        run: |
+          curl -L -o winflexbison.zip https://github.com/lexxmark/winflexbison/releases/download/v2.5.22/win_flex_bison-2.5.22.zip
+          7z x winflexbison.zip -oC:\winflexbison
+          echo "C:\winflexbison" | Out-File -Append $env:GITHUB_PATH
+        shell: powershell
+
+      - name: Set up MSVC environment
+        uses: microsoft/setup-msbuild@v1.1
+
+      - name: Set up MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          update: true
+          install: >-
+            base-devel
+            git
+            mingw-w64-x86_64-toolchain
+            mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-ninja
+            mingw-w64-x86_64-libxslt
+            mingw-w64-x86_64-wixl
+
+      - name: Prepare autogen.input
+        shell: bash
+        run: |
+          echo "--disable-firebird-sdbc" >> autogen.input
+
+      - name: Run autogen and configure
+        shell: msys2 {0}
+        run: ./autogen.sh
+
       - name: Build LibreOffice
         shell: msys2 {0}
         run: make build-nocheck
