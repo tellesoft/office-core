@@ -2,9 +2,9 @@ name: build
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, master ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, master ]
 
 jobs:
   build:
@@ -16,13 +16,6 @@ jobs:
 
     - name: Set up MSBuild
       uses: microsoft/setup-msbuild@v1.3.1
-
-    - name: Install MSYS2
-      run: |
-        Invoke-WebRequest -Uri https://github.com/msys2/msys2-installer/releases/download/2024-01-25/msys2-base-x86_64-20240125.tar.xz -OutFile msys2.tar.xz
-        mkdir C:\msys64
-        tar -xf msys2.tar.xz -C C:\msys64 --strip-components=1
-        echo "C:\msys64\usr\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
     - name: Install pkgconf
       run: |
