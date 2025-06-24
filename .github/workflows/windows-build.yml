@@ -22,7 +22,9 @@ jobs:
     - name: Install winflexbison and 7zip manually
       run: |
         curl -LO https://github.com/lexxmark/winflexbison/releases/download/v2.5.22/win_flex_bison-2.5.22.zip
-        7z x win_flex_bison-2.5.22.zip -oC:\winflexbison
+        curl -LO https://www.7-zip.org/a/7z2301-x64.exe
+        Start-Process .\7z2301-x64.exe -ArgumentList "/S" -NoNewWindow -Wait
+        & "C:\Program Files\7-Zip\7z.exe" x win_flex_bison-2.5.22.zip -oC:\winflexbison
         echo "C:\winflexbison" | Out-File -Append -Encoding ascii $env:GITHUB_PATH
 
     - name: Install Visual Studio Build Tools 2022 with required components
@@ -35,41 +37,49 @@ jobs:
           '--add', 'Microsoft.VisualStudio.Component.Windows10SDK.20348' `
           -NoNewWindow -Wait
 
-    - name: Set up MSYS2 with required Unix tools
+    - name: Set up MSYS2 just to install Unix dependencies
       uses: msys2/setup-msys2@v2
       with:
+        msystem: MSYS
         update: true
         install: >-
-          base-devel
-          git
           autoconf
           automake
+          make
           libtool
           pkgconf
-          make
           sed
           grep
           perl
+          git
+
+    - name: Copy Unix tools to Windows PATH
+      run: |
+        echo "C:\msys64\usr\bin" | Out-File -Append -Encoding ascii $env:GITHUB_PATH
 
     - name: Prepare autogen.input
       run: echo "--disable-firebird-sdbc" >> autogen.input
 
-    - name: Run autogen.sh inside MSYS2
-      shell: msys2 {0}
+    - name: Run autogen.sh inside Developer Command Prompt
+      shell: cmd
       run: |
-        export PATH="/c/BuildTools/VC/Tools/MSVC/14.*/bin/Hostx64/x64:$PATH"
-        ./autogen.sh --with-lang=en-US --disable-firebird-sdbc
+        "C:\BuildTools\Common7\Tools\VsDevCmd.bat" ^
+        && call autogen.sh --with-lang=en-US --disable-firebird-sdbc
 
     - name: Build LibreOffice
-      shell: msys2 {0}
-      run: make
+      shell: cmd
+      run: |
+        "C:\BuildTools\Common7\Tools\VsDevCmd.bat" ^
+        && call make
 
     - name: Package MSI
-      shell: msys2 {0}
-      run: make msinstaller
+      shell: cmd
+      run: |
+        "C:\BuildTools\Common7\Tools\VsDevCmd.bat" ^
+        && call make msinstaller
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: tellesuite-windows-msi
-        path: instdir/*.msi
+        path: instdir\*.msi
