@@ -45,3 +45,4 @@ jobs:
       with:
         name: TellesoftOffice
         path: instdir/TellesoftOffice.msi
+
