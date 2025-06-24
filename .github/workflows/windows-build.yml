@@ -2,52 +2,58 @@ name: Windows Build
 
 on:
   push:
-    branches: [ master ]
+    branches: [ main ]
   pull_request:
-    branches: [ master ]
+    branches: [ main ]
 
 jobs:
   build:
     runs-on: windows-latest
-    env:
-      MSBUILD_PATH: 'C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat'
 
     steps:
-    - name: Checkout source
-      uses: actions/checkout@v3
+    - name: Checkout source code
+      uses: actions/checkout@v4
 
-    - name: Setup Python
-      uses: actions/setup-python@v4
+    - name: Set up Python
+      uses: actions/setup-python@v5
       with:
-        python-version: 3.x
+        python-version: '3.11'
 
-    - name: Install Chocolatey packages
+    - name: Install Chocolatey and essential packages
       run: |
-        choco install -y make python winflexbison7 git cmake
+        choco install -y make cmake git 7zip
+        Invoke-WebRequest -Uri "https://github.com/lexxmark/winflexbison/releases/download/v2.5.22/win_flex_bison-2.5.22.zip" -OutFile "winflexbison.zip"
+        7z x winflexbison.zip -owinflexbison
+        echo "${{ github.workspace }}\\winflexbison" | Out-File -Append -FilePath $env:GITHUB_PATH
 
-    - name: Prepare autogen.input
+    - name: Set up Visual Studio environment
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: x64
+
+    - name: Prepare build environment
       run: echo --disable-firebird-sdbc >> autogen.input
 
-    - name: Initialize MSVC environment
-      run: call "%MSBUILD_PATH%" && where cl
-
-    - name: Run autogen and configure
-      shell: bash
+    - name: Configure LibreOffice
       run: |
-        ./autogen.sh @autogen.input --enable-option-checking=fatal \
-          --disable-java --disable-python \
-          --host=x86_64-w64-mingw32
+        ./autogen.sh --with-external-tar="${{ github.workspace }}/externals" ^
+                     --disable-firebird-sdbc ^
+                     --disable-odk ^
+                     --disable-gpgmepp ^
+                     --disable-online-update ^
+                     --with-theme=colibre ^
+                     --with-lang=en-US
 
     - name: Build LibreOffice
-      shell: bash
-      run: make -j%NUMBER_OF_PROCESSORS%
+      run: make -j4
 
-    - name: Package MSI
-      shell: bash
-      run: make release-win64
+    - name: Package MSI installer
+      run: |
+        cd instsetoo_native
+        build --all --msi
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
-        name: LibreOffice-Windows
-        path: instsetoo_Win_x64_install\*.msi
+        name: tellesuite-windows-installer
+        path: instsetoo_native/**/install/*.msi
