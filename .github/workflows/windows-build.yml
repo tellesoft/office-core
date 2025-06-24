@@ -65,6 +65,9 @@ jobs:
       run: |
         "C:\BuildTools\Common7\Tools\VsDevCmd.bat" ^
         && call autogen.sh --with-lang=en-US --disable-firebird-sdbc
+    - name: Show autogen.log
+      shell: cmd
+      run: type autogen.log
 
     - name: Build LibreOffice
       shell: cmd
