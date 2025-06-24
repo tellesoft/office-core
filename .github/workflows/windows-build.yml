@@ -25,39 +25,42 @@ jobs:
         7z x win_flex_bison-2.5.22.zip -oC:\winflexbison
         echo "C:\winflexbison" | Out-File -Append -Encoding ascii $env:GITHUB_PATH
 
-    - name: Set up MSYS2 for autotools and dependencies
-      uses: msys2/setup-msys2@v2
-      with:
-        msystem: MSYS
-        update: true
-        install: >-
-          base-devel
-          git
-          autoconf
-          automake
-          libtool
-          pkgconf
-          make
-          sed
-          grep
-          perl
+    - name: Install MSYS2 and Unix tools to PATH
+      run: |
+        curl -LO https://github.com/msys2/msys2-installer/releases/download/2023-07-07/msys2-base-x86_64-20230707.tar.xz
+        7z x msys2-base-x86_64-20230707.tar.xz -omsys64
+        echo "$PWD\\msys64\\usr\\bin" | Out-File -Append -Encoding ascii $env:GITHUB_PATH
+
+    - name: Install Visual Studio Build Tools 2022 with required components
+      run: |
+        curl -LO https://aka.ms/vs/17/release/vs_BuildTools.exe
+        Start-Process .\vs_BuildTools.exe -ArgumentList '--quiet', '--wait', '--norestart', '--nocache', `
+          '--installPath', 'C:\BuildTools', `
+          '--add', 'Microsoft.VisualStudio.Workload.VCTools', `
+          '--add', 'Microsoft.VisualStudio.Component.VC.Tools.x86.x64', `
+          '--add', 'Microsoft.VisualStudio.Component.Windows10SDK.20348' `
+          -NoNewWindow -Wait
 
     - name: Prepare autogen.input
       run: echo "--disable-firebird-sdbc" >> autogen.input
 
-    - name: Run autogen.sh inside MSYS2 with Visual Studio environment
-      shell: msys2 {0}
+    - name: Run autogen.sh inside Developer Command Prompt
+      shell: cmd
       run: |
-        source "/c/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Auxiliary/Build/vcvars64.bat"
-        ./autogen.sh --with-lang=en-US --disable-firebird-sdbc
+        "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat" && ^
+        bash autogen.sh --with-lang=en-US --disable-firebird-sdbc
 
     - name: Build LibreOffice
-      shell: msys2 {0}
-      run: make
+      shell: cmd
+      run: |
+        "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat" && ^
+        make
 
     - name: Package MSI
-      shell: msys2 {0}
-      run: make msinstaller
+      shell: cmd
+      run: |
+        "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat" && ^
+        make msinstaller
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
