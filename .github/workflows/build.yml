@@ -17,13 +17,13 @@ jobs:
       - name: Set up MSBuild
         uses: microsoft/setup-msbuild@v1.3.1
 
-      - name: Download MSYS2 (Official GitHub Release)
+      - name: Download MSYS2 (from GitHub release)
         run: |
           Invoke-WebRequest -Uri https://github.com/msys2/msys2-installer/releases/download/2024-05-15/msys2-base-x86_64-20240515.tar.xz -OutFile msys2.tar.xz
           mkdir C:\msys64
           tar -xf msys2.tar.xz -C C:\msys64
 
-      - name: Install pkgconf (for harfbuzz)
+      - name: Install pkgconf (required by harfbuzz)
         run: |
           C:\msys64\usr\bin\bash.exe -lc "pacman -Sy --noconfirm pkgconf"
 
