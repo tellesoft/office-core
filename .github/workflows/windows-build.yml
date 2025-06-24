@@ -25,16 +25,6 @@ jobs:
         7z x win_flex_bison-2.5.22.zip -oC:\winflexbison
         echo "C:\winflexbison" | Out-File -Append -Encoding ascii $env:GITHUB_PATH
 
-    - name: Install Visual Studio Build Tools 2022 with required components
-      run: |
-        curl -LO https://aka.ms/vs/17/release/vs_BuildTools.exe
-        Start-Process -Wait -FilePath .\vs_BuildTools.exe -ArgumentList `
-          '--quiet', '--norestart', '--nocache', `
-          '--installPath', 'C:\BuildTools', `
-          '--add', 'Microsoft.VisualStudio.Workload.VCTools', `
-          '--add', 'Microsoft.VisualStudio.Component.VC.Tools.x86.x64', `
-          '--add', 'Microsoft.VisualStudio.Component.Windows10SDK.20348'
-
     - name: Set up MSYS2 for autotools
       uses: msys2/setup-msys2@v2
       with:
@@ -55,16 +45,11 @@ jobs:
     - name: Prepare autogen.input
       run: echo "--disable-firebird-sdbc" >> autogen.input
 
-    - name: Run autogen.sh inside MSYS2 with Visual Studio Environment
-      shell: msys2 {0}
+    - name: Run autogen.sh with VS environment
+      shell: cmd
       run: |
-        export "VSINSTALLDIR=/c/BuildTools"
-        export "VCVARS_PATH=/c/BuildTools/VC/Auxiliary/Build/vcvars64.bat"
-        if [ -f "$VCVARS_PATH" ]; then
-          cmd.exe /c "$VCVARS_PATH && bash -lc './autogen.sh --with-lang=en-US --disable-firebird-sdbc'"
-        else
-          echo "vcvars64.bat not found" && exit 1
-        fi
+        "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat" && ^
+        bash -lc "./autogen.sh --with-lang=en-US --disable-firebird-sdbc"
 
     - name: Build LibreOffice
       shell: msys2 {0}
