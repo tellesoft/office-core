@@ -9,46 +9,47 @@ on:
 jobs:
   build:
     runs-on: windows-latest
-
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
 
       - name: Set up Python
+        shell: powershell
         run: |
           curl -o python-installer.exe https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe
-          .\python-installer.exe /quiet InstallAllUsers=1 PrependPath=1 Include_tcltk=1
+          Start-Process -FilePath "$PWD\python-installer.exe" -ArgumentList "/quiet InstallAllUsers=1 PrependPath=1 Include_test=0" -Wait
 
       - name: Install winflexbison and 7zip manually
+        shell: powershell
         run: |
-          Invoke-WebRequest -Uri https://github.com/lexxmark/winflexbison/releases/download/v2.5.22/win_flex_bison-2.5.22.zip -OutFile flexbison.zip
-          Expand-Archive -Path flexbison.zip -DestinationPath C:\winflexbison
-          echo "C:\winflexbison" | Out-File -FilePath $env:GITHUB_PATH -Append
-
-          Invoke-WebRequest -Uri https://www.7-zip.org/a/7z2301-x64.exe -OutFile 7zip.exe
+          Invoke-WebRequest https://github.com/lexxmark/winflexbison/releases/download/v2.5.22/win_flex_bison-2.5.22.zip -OutFile winflexbison.zip
+          Expand-Archive winflexbison.zip -DestinationPath $env:ProgramFiles
+          $env:Path += ";$env:ProgramFiles\win_flex_bison-2.5.22"
+          Invoke-WebRequest https://www.7-zip.org/a/7z2301-x64.exe -OutFile 7zip.exe
           Start-Process .\7zip.exe -ArgumentList "/S" -Wait
 
       - name: Set up MSVC environment
-        uses: microsoft/setup-msbuild@v1.3.1
+        uses: microsoft/setup-msbuild@v1.1
 
       - name: Prepare autogen.input
-        run: |
-          echo --disable-firebird-sdbc >> autogen.input
+        run: echo --disable-firebird-sdbc >> autogen.input
 
       - name: Run autogen and configure
         run: |
-          cmd /c "bash.exe ./autogen.sh"
+          ./autogen.sh
+          make fetch
 
       - name: Build LibreOffice
-        run: |
-          cmd /c "make build-nocheck"
+        run: make
 
       - name: Package MSI
         run: |
-          cmd /c "make pkg"
+          mkdir output
+          cp instdir/program/soffice.exe output/
+          # Example packaging step – update as needed
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: windows-msi
-          path: instdir
+          name: build-output
+          path: output/
