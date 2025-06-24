@@ -1,3 +1,4 @@
+
 name: build
 
 on:
@@ -28,11 +29,12 @@ jobs:
     - name: Install Visual Studio Build Tools 2022 with required components
       run: |
         curl -LO https://aka.ms/vs/17/release/vs_BuildTools.exe
-        .\vs_BuildTools.exe --quiet --wait --norestart --nocache `
-          --installPath C:\BuildTools `
-          --add Microsoft.VisualStudio.Workload.VCTools `
-          --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 `
-          --add Microsoft.VisualStudio.Component.Windows10SDK.20348
+        Start-Process .\vs_BuildTools.exe -ArgumentList '--quiet', '--wait', '--norestart', '--nocache', `
+          '--installPath', 'C:\BuildTools', `
+          '--add', 'Microsoft.VisualStudio.Workload.VCTools', `
+          '--add', 'Microsoft.VisualStudio.Component.VC.Tools.x86.x64', `
+          '--add', 'Microsoft.VisualStudio.Component.Windows10SDK.20348' `
+          -NoNewWindow -Wait
 
     - name: Set up MSYS2 for autotools
       uses: msys2/setup-msys2@v2
