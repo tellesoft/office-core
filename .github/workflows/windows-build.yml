@@ -41,6 +41,8 @@ jobs:
             git
             autoconf
             automake
+            libtool
+            m4
             mingw-w64-x86_64-toolchain
             mingw-w64-x86_64-cmake
             mingw-w64-x86_64-libxslt
@@ -52,18 +54,18 @@ jobs:
           echo "--disable-firebird-sdbc" >> autogen.input
 
       - name: Run autogen and configure (MSVC native)
-        shell: powershell
+        shell: bash
         run: |
-          $env:PATH += ";C:\winflexbison"
-          bash ./autogen.sh --with-visual-studio=2022 --disable-firebird-sdbc
+          export PATH="$PATH:/c/winflexbison"
+          ./autogen.sh --with-visual-studio=2022 --disable-firebird-sdbc
 
       - name: Build LibreOffice
-        shell: powershell
+        shell: bash
         run: |
           make build-nocheck
 
       - name: Package MSI
-        shell: powershell
+        shell: bash
         run: |
           make package
 
