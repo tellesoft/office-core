@@ -6,63 +6,64 @@ on:
 jobs:
   build:
     runs-on: windows-latest
-    timeout-minutes: 360
 
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
       - name: Install Visual Studio Build Tools 2022 with required components
-        uses: microsoft/setup-msbuild@v1.3.1
+        uses: microsoft/setup-msbuild@v1.1
+        with:
+          vs-version: '2022'
 
-      - name: Install MSYS2 from EXE (no Chocolatey)
+      - name: Install 7zip
         run: |
-          Invoke-WebRequest -Uri https://github.com/msys2/msys2-installer/releases/latest/download/msys2-x86_64.exe -OutFile msys2.exe
-          Start-Process -FilePath .\msys2.exe -ArgumentList "--root C:\msys64 --script C:\msys64\post-install.sh" -Wait -NoNewWindow
-        shell: powershell
+          Invoke-WebRequest -Uri https://www.7-zip.org/a/7z2301-x64.exe -OutFile 7z.exe
+          Start-Process .\7z.exe -ArgumentList "/S" -Wait
 
-      - name: Add MSYS2 to PATH
+      - name: Install MSYS2 (manual, no Chocolatey)
         run: |
-          echo "C:\msys64\usr\bin" | Out-File -Append $env:GITHUB_PATH
-          echo "C:\msys64\bin" | Out-File -Append $env:GITHUB_PATH
+          Invoke-WebRequest -Uri https://github.com/msys2/msys2-installer/releases/latest/download/msys2-x86_64-20240120.exe -OutFile msys2-installer.exe
+          Start-Process .\msys2-installer.exe -ArgumentList "--root C:\msys64 --script msys2-install.cmd" -Wait
+          echo "C:\msys64\usr\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          echo "C:\msys64\mingw64\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - name: Add Unix tools to Windows PATH
         run: |
-          echo "C:\Program Files\Git\usr\bin" | Out-File -Append $env:GITHUB_PATH
+          echo "C:\Program Files\Git\usr\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - name: Prepare autogen.input
         run: |
-          echo '--with-external-tar=download' > autogen.input
-          echo '--with-jdk-home=C:/Program Files/Java/jdk' >> autogen.input
-          echo '--disable-dconf' >> autogen.input
-          echo '--disable-odk' >> autogen.input
-          echo '--disable-avahi' >> autogen.input
-          echo '--enable-release-build=yes' >> autogen.input
+          echo '--enable-release-build=yes' > autogen.input
+          echo '--with-branding=tellesoft' >> autogen.input
 
       - name: Run autogen.sh inside MSYS2
-        shell: cmd
+        shell: msys2 {0}
         run: |
-          C:\msys64\usr\bin\bash.exe -lc "./autogen.sh"
+          cd $GITHUB_WORKSPACE
+          ./autogen.sh
 
       - name: Build LibreOffice
-        shell: cmd
+        shell: msys2 {0}
         run: |
-          C:\msys64\usr\bin\bash.exe -lc "make build-nocheck"
+          cd $GITHUB_WORKSPACE
+          make build-nocheck
 
       - name: Package Installer (MSI)
         shell: cmd
         run: |
-          C:\msys64\usr\bin\bash.exe -lc "make msi"
-          ren instdir\*.msi TellesoftOffice.msi
+          cd instdir
+          "C:\Program Files (x86)\WiX Toolset v3.11\bin\candle.exe" installer.wxs
+          "C:\Program Files (x86)\WiX Toolset v3.11\bin\light.exe" installer.wixobj -o TellesoftOffice.msi
 
       - name: Upload build directory
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
-          name: build-dir
-          path: instdir/
+          name: build-directory
+          path: instdir
 
       - name: Upload MSI installer
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: TellesoftOfficeInstaller
           path: instdir/TellesoftOffice.msi
