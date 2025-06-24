@@ -22,7 +22,7 @@ jobs:
       run: |
         curl.exe -L -o winflexbison.zip https://github.com/lexxmark/winflexbison/releases/download/v2.5.22/win_flex_bison-2.5.22.zip
         7z x winflexbison.zip -owinflexbison
-        echo "C:\winflexbison" | Out-File -Append $env:GITHUB_PATH
+        echo "C:\\winflexbison" | Out-File -Append $env:GITHUB_PATH
 
     - name: Set up MSVC environment
       uses: ilammy/msvc-dev-cmd@v1
@@ -62,10 +62,10 @@ jobs:
     - name: Package MSI
       shell: bash
       run: |
-        echo "Placeholder for packaging step"
+        echo "Placeholder for MSI packaging"
 
     - name: Upload artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: Tellesoft-Office-Installer
         path: ./instsetoo_native
