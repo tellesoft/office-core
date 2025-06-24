@@ -26,31 +26,40 @@ jobs:
           Invoke-WebRequest -Uri https://github.com/lexxmark/winflexbison/releases/download/v2.5.22/win_flex_bison-2.5.22.zip -OutFile flexbison.zip
           Expand-Archive flexbison.zip -DestinationPath C:\winflexbison
           echo "C:\winflexbison" | Out-File -Append $env:GITHUB_PATH
-          
+
           Invoke-WebRequest -Uri https://www.7-zip.org/a/7z2301-x64.exe -OutFile 7zip.exe
           Start-Process -FilePath ".\7zip.exe" -ArgumentList "/S" -Wait
 
-      - name: Set up MSVC environment
-        uses: microsoft/setup-msbuild@v1.1
+      - name: Install MSYS2 and GNU build tools
+        uses: msys2/setup-msys2@v2
+        with:
+          update: true
+          install: >
+            base-devel
+            autoconf
+            automake
+            libtool
+            make
+            mingw-w64-x86_64-toolchain
+            git
+            tar
+            patch
 
       - name: Prepare autogen.input
-        shell: bash
+        shell: msys2 {0}
         run: echo "--disable-firebird-sdbc" >> autogen.input
 
       - name: Run autogen and configure
-        shell: bash
-        run: |
-          ./autogen.sh
+        shell: msys2 {0}
+        run: ./autogen.sh
 
       - name: Build LibreOffice
-        shell: bash
-        run: |
-          make build-nocheck
+        shell: msys2 {0}
+        run: make build-nocheck
 
       - name: Package MSI
-        shell: bash
-        run: |
-          make package
+        shell: msys2 {0}
+        run: make package
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
