@@ -11,7 +11,7 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - name: Checkout source code
+    - name: Checkout source
       uses: actions/checkout@v4
 
     - name: Set up Python
@@ -19,35 +19,34 @@ jobs:
       with:
         python-version: '3.11'
 
-    - name: Install Chocolatey and essential packages
+    - name: Install required tools manually
+      shell: powershell
       run: |
-        choco install -y make cmake git 7zip
         Invoke-WebRequest -Uri "https://github.com/lexxmark/winflexbison/releases/download/v2.5.22/win_flex_bison-2.5.22.zip" -OutFile "winflexbison.zip"
-        7z x winflexbison.zip -owinflexbison
-        echo "${{ github.workspace }}\\winflexbison" | Out-File -Append -FilePath $env:GITHUB_PATH
+        Expand-Archive -Path winflexbison.zip -DestinationPath winflexbison
+        echo "$env:GITHUB_WORKSPACE\\winflexbison" | Out-File -Append -Encoding ascii -FilePath $env:GITHUB_PATH
 
-    - name: Set up Visual Studio environment
+        choco install -y cmake make 7zip
+
+    - name: Set up MSVC environment
       uses: ilammy/msvc-dev-cmd@v1
       with:
         arch: x64
 
-    - name: Prepare build environment
-      run: echo --disable-firebird-sdbc >> autogen.input
+    - name: Prepare autogen.input
+      shell: bash
+      run: echo "--disable-firebird-sdbc" >> autogen.input
 
-    - name: Configure LibreOffice
-      run: |
-        ./autogen.sh --with-external-tar="${{ github.workspace }}/externals" ^
-                     --disable-firebird-sdbc ^
-                     --disable-odk ^
-                     --disable-gpgmepp ^
-                     --disable-online-update ^
-                     --with-theme=colibre ^
-                     --with-lang=en-US
+    - name: Run autogen and configure
+      shell: bash
+      run: ./autogen.sh
 
     - name: Build LibreOffice
+      shell: bash
       run: make -j4
 
-    - name: Package MSI installer
+    - name: Package MSI
+      shell: bash
       run: |
         cd instsetoo_native
         build --all --msi
