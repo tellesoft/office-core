@@ -1,70 +1,69 @@
 name: build
 
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: windows-latest
+    timeout-minutes: 360
 
     steps:
-    - name: Checkout source code
-      uses: actions/checkout@v4
+      - name: Checkout source code
+        uses: actions/checkout@v4
 
-    - name: Install Visual Studio Build Tools 2022 with required components
-      uses: microsoft/setup-msbuild@v1.3.1
+      - name: Install Visual Studio Build Tools 2022 with required components
+        uses: microsoft/setup-msbuild@v1.3.1
 
-    - name: Install 7zip
-      run: |
-        Invoke-WebRequest https://www.7-zip.org/a/7z2301-x64.exe -OutFile 7z.exe
-        Start-Process .\7z.exe -ArgumentList "/S" -Wait
-        echo "C:\Program Files\7-Zip" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      - name: Install 7zip
+        run: |
+          Invoke-WebRequest -Uri https://www.7-zip.org/a/7z2301-x64.exe -OutFile 7z.exe
+          Start-Process .\7z.exe -ArgumentList "/S" -NoNewWindow -Wait
 
-    - name: Install MSYS2 manually (no Chocolatey)
-      run: |
-        Invoke-WebRequest -Uri https://github.com/msys2/msys2-installer/releases/download/2024-05-09/msys2-base-x86_64-20240509.tar.xz -OutFile msys2.tar.xz
-        7z x msys2.tar.xz -aoa -omsys2.tar
-        7z x msys2.tar -aoa -omsys64
-        echo "$env:GITHUB_WORKSPACE\msys64\usr\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-        echo "$env:GITHUB_WORKSPACE\msys64\mingw64\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      - name: Install MSYS2 (manual, no Chocolatey)
+        run: |
+          Invoke-WebRequest -Uri https://repo.msys2.org/distrib/x86_64/msys2-x86_64-20240128.exe -OutFile msys2.exe
+          Start-Process .\msys2.exe -ArgumentList "--root C:\msys64 --script C:\msys64\post-install.sh" -NoNewWindow -Wait
+        shell: powershell
 
-    - name: Prepare autogen.input
-      run: |
-        echo '--with-lang=en-US' > autogen.input
-        echo '--with-theme=colibre' >> autogen.input
-        echo '--enable-release-build' >> autogen.input
-        echo '--disable-online-update' >> autogen.input
-        echo '--disable-breakpad' >> autogen.input
-        echo '--with-product-name=Tellesoft Office' >> autogen.input
-        echo '--with-vendor=Tellesoft' >> autogen.input
-        echo '--with-build-version=Tellesoft Professional Edition' >> autogen.input
+      - name: Add Unix tools to Windows PATH
+        run: |
+          echo "C:\msys64\usr\bin" | Out-File -Append $env:GITHUB_PATH
+          echo "C:\msys64\bin" | Out-File -Append $env:GITHUB_PATH
 
-    - name: Run autogen.sh inside MSYS2
-      shell: cmd
-      run: |
-        C:\msys64\usr\bin\bash.exe -lc "./autogen.sh"
+      - name: Prepare autogen.input
+        run: |
+          echo '--with-external-tar=download' > autogen.input
+          echo '--with-jdk-home=C:/Program Files/Java/jdk' >> autogen.input
+          echo '--disable-dconf' >> autogen.input
+          echo '--disable-odk' >> autogen.input
+          echo '--disable-avahi' >> autogen.input
+          echo '--enable-release-build=yes' >> autogen.input
 
-    - name: Build LibreOffice
-      shell: cmd
-      run: |
-        C:\msys64\usr\bin\bash.exe -lc "make build-nocheck"
+      - name: Run autogen.sh inside MSYS2
+        shell: cmd
+        run: |
+          C:\msys64\usr\bin\bash.exe -lc "./autogen.sh"
 
-    - name: Package Installer (MSI)
-      shell: cmd
-      run: |
-        C:\msys64\usr\bin\bash.exe -lc "make pkg"
+      - name: Build LibreOffice
+        shell: cmd
+        run: |
+          C:\msys64\usr\bin\bash.exe -lc "make build-nocheck"
 
-    - name: Upload build directory
-      uses: actions/upload-artifact@v4
-      with:
-        name: build-directory
-        path: instdir/
+      - name: Package Installer (MSI)
+        shell: cmd
+        run: |
+          C:\msys64\usr\bin\bash.exe -lc "make msi"
+          rename instdir/TellesoftOffice*.msi TellesoftOffice.msi
 
-    - name: Upload MSI installer
-      uses: actions/upload-artifact@v4
-      with:
-        name: tellesofft-office-installer
-        path: workdir/installation/LibreOffice*/*.msi
+      - name: Upload build directory
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-dir
+          path: instdir/
+
+      - name: Upload MSI installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: TellesoftOfficeInstaller
+          path: instdir/TellesoftOffice.msi
