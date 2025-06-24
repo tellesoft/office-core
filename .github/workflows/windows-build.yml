@@ -15,18 +15,19 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Python
-        run: |
-          curl.exe -o python-installer.exe https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe
-          python-installer.exe /quiet InstallAllUsers=1 PrependPath=1 Include_test=0
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
 
       - name: Install winflexbison and 7zip manually
-        run: |
-          curl.exe -L -o winflexbison.zip https://github.com/lexxmark/winflexbison/releases/download/v2.5.22/win_flex_bison-2.5.22.zip
-          curl.exe -L -o 7zip.exe https://www.7-zip.org/a/7z2301-x64.exe
-          7zip.exe /S
-          tar -xf winflexbison.zip -C C:\winflexbison --strip-components=1
-          echo "C:\winflexbison" | Out-File -Append $env:GITHUB_PATH
         shell: powershell
+        run: |
+          Invoke-WebRequest -Uri "https://github.com/lexxmark/winflexbison/releases/download/v2.5.22/win_flex_bison-2.5.22.zip" -OutFile "winflexbison.zip"
+          Expand-Archive winflexbison.zip -DestinationPath "C:\winflexbison"
+          echo "C:\winflexbison" | Out-File -Append -Encoding ascii $env:GITHUB_PATH
+
+          Invoke-WebRequest -Uri "https://www.7-zip.org/a/7z2301-x64.exe" -OutFile "7zsetup.exe"
+          Start-Process -FilePath "7zsetup.exe" -ArgumentList "/S" -Wait
 
       - name: Set up MSVC environment
         uses: microsoft/setup-msbuild@v1.1
@@ -38,13 +39,13 @@ jobs:
           install: >-
             base-devel
             git
-            mingw-w64-x86_64-toolchain
-            mingw-w64-x86_64-cmake
-            mingw-w64-x86_64-ninja
-            mingw-w64-x86_64-libxslt
-            mingw-w64-x86_64-wixl
             autoconf
             automake
+            mingw-w64-x86_64-toolchain
+            mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-libxslt
+            mingw-w64-x86_64-ninja
+            mingw-w64-x86_64-wixl
 
       - name: Prepare autogen.input
         shell: bash
