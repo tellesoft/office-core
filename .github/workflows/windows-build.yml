@@ -25,11 +25,15 @@ jobs:
         7z x win_flex_bison-2.5.22.zip -oC:\winflexbison
         echo "C:\winflexbison" | Out-File -Append -Encoding ascii $env:GITHUB_PATH
 
-    - name: Install MSYS2 and Unix tools to PATH
+    - name: Install MSYS2 with Chocolatey
       run: |
-        curl -LO https://github.com/msys2/msys2-installer/releases/download/2023-07-07/msys2-base-x86_64-20230707.tar.xz
-        7z x msys2-base-x86_64-20230707.tar.xz -omsys64
-        echo "$PWD\\msys64\\usr\\bin" | Out-File -Append -Encoding ascii $env:GITHUB_PATH
+        choco install -y msys2
+        echo "C:\tools\msys64\usr\bin" | Out-File -Append -Encoding ascii $env:GITHUB_PATH
+
+    - name: Install Unix dependencies in MSYS2
+      run: |
+        C:\tools\msys64\usr\bin\bash.exe -lc "pacman --noconfirm -Syu"
+        C:\tools\msys64\usr\bin\bash.exe -lc "pacman --noconfirm -S autoconf automake libtool pkgconf make grep sed perl"
 
     - name: Install Visual Studio Build Tools 2022 with required components
       run: |
