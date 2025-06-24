@@ -1,0 +1,55 @@
+name: build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Set up MSBuild
+        uses: microsoft/setup-msbuild@v1.3.1
+
+      - name: Download MSYS2 (official GitHub source)
+        run: |
+          Invoke-WebRequest -Uri https://github.com/msys2/msys2-installer/releases/download/2024-05-15/msys2-base-x86_64-20240515.tar.xz -OutFile msys2.tar.xz
+          mkdir C:\msys64
+          tar -xf msys2.tar.xz -C C:\msys64
+
+      - name: Add MSYS2 to PATH
+        run: |
+          echo "C:\msys64\usr\bin" | Out-File -Append -Encoding ascii $env:GITHUB_PATH
+
+      - name: Install pkgconf (needed for harfbuzz)
+        run: |
+          C:\msys64\usr\bin\bash.exe -lc "pacman -Sy --noconfirm pkgconf"
+
+      - name: Prepare autogen.input
+        run: |
+          echo --with-theme=colibre > autogen.input
+          echo --enable-release-build >> autogen.input
+
+      - name: Run autogen.sh inside MSYS2
+        run: |
+          C:\msys64\usr\bin\bash.exe -lc "cd $PWD && ./autogen.sh"
+
+      - name: Build Tellesoft Office
+        run: |
+          C:\msys64\usr\bin\bash.exe -lc "cd $PWD && make -j$(nproc)"
+
+      - name: Package Installer (MSI)
+        run: |
+          C:\msys64\usr\bin\bash.exe -lc "cd $PWD && make msicreator"
+
+      - name: Upload TellesoftOffice.msi
+        uses: actions/upload-artifact@v4
+        with:
+          name: TellesoftOfficeInstaller
+          path: ./instdir/TellesoftOffice.msi
