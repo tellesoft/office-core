@@ -33,6 +33,7 @@ jobs:
       run: |
         echo '--with-theme=colibre' > autogen.input
         echo '--enable-release-build' >> autogen.input
+        echo '--disable-compiler-plugins' >> autogen.input
       shell: bash
 
     - name: Run autogen.sh in MSYS2
