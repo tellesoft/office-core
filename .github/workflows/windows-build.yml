@@ -25,7 +25,7 @@ jobs:
 
     - name: Install MSYS2 manually (no Chocolatey)
       run: |
-        Invoke-WebRequest -Uri https://github.com/msys2/msys2-installer/releases/download/2023-10-26/msys2-base-x86_64-20231026.tar.xz -OutFile msys2.tar.xz
+        Invoke-WebRequest -Uri https://github.com/msys2/msys2-installer/releases/download/2024-05-09/msys2-base-x86_64-20240509.tar.xz -OutFile msys2.tar.xz
         7z x msys2.tar.xz -aoa -omsys2.tar
         7z x msys2.tar -aoa -omsys64
         echo "$env:GITHUB_WORKSPACE\msys64\usr\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
