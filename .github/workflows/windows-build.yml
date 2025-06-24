@@ -32,7 +32,7 @@ jobs:
       - name: Set up MSVC environment
         uses: microsoft/setup-msbuild@v1.1
 
-      - name: Set up MSYS2
+      - name: Set up MSYS2 (for tools, not shell)
         uses: msys2/setup-msys2@v2
         with:
           update: true
@@ -51,17 +51,21 @@ jobs:
         run: |
           echo "--disable-firebird-sdbc" >> autogen.input
 
-      - name: Run autogen and configure
-        shell: msys2 {0}
-        run: ./autogen.sh
+      - name: Run autogen and configure (MSVC native)
+        shell: powershell
+        run: |
+          $env:PATH += ";C:\winflexbison"
+          bash ./autogen.sh --with-visual-studio=2022 --disable-firebird-sdbc
 
       - name: Build LibreOffice
-        shell: msys2 {0}
-        run: make build-nocheck
+        shell: powershell
+        run: |
+          make build-nocheck
 
       - name: Package MSI
-        shell: msys2 {0}
-        run: make package
+        shell: powershell
+        run: |
+          make package
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
