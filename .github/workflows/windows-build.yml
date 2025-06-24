@@ -15,8 +15,8 @@ jobs:
 
     - name: Set up Python
       run: |
-        curl.exe -o python-installer.exe https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe
-        python-installer.exe /quiet InstallAllUsers=1 PrependPath=1 Include_test=0
+        curl.exe -L -o $env:TEMP\python-installer.exe https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe
+        Start-Process -Wait -FilePath "$env:TEMP\python-installer.exe" -ArgumentList "/quiet InstallAllUsers=1 PrependPath=1 Include_test=0"
 
     - name: Install winflexbison and 7zip manually
       run: |
@@ -34,16 +34,13 @@ jobs:
         install: >-
           base-devel
           git
+          autoconf
+          automake
           mingw-w64-x86_64-libxslt
           mingw-w64-x86_64-toolchain
           mingw-w64-x86_64-cmake
           mingw-w64-x86_64-ninja
           mingw-w64-x86_64-make
-
-    - name: Install autoconf and automake (required by autogen.sh)
-      shell: msys2 {0}
-      run: |
-        pacman -S --noconfirm autoconf automake
 
     - name: Prepare autogen.input
       run: echo "--disable-firebird-sdbc" >> autogen.input
@@ -62,7 +59,7 @@ jobs:
     - name: Package MSI
       shell: bash
       run: |
-        echo "Placeholder for MSI packaging"
+        echo "MSI packaging step goes here"
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
