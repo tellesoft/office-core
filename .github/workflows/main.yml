@@ -45,13 +45,13 @@ jobs:
       shell: bash
 
     - name: Run autogen.sh using Cygwin
-      shell: C:\cygwin\bin\bash.exe -leo pipefail -c "cd /cygdrive/d/a/office-core/office-core && ./autogen.sh"
+      run: C:\cygwin\bin\bash -l -c "cd /cygdrive/d/a/office-core/office-core && ./autogen.sh"
 
     - name: Build LibreOffice (Tellesoft Office)
-      shell: C:\cygwin\bin\bash.exe -leo pipefail -c "cd /cygdrive/d/a/office-core/office-core && make build-nocheck -j$(nproc)"
+      run: C:\cygwin\bin\bash -l -c "cd /cygdrive/d/a/office-core/office-core && make build-nocheck -j$(nproc)"
 
     - name: Package Installer (MSI)
-      shell: C:\cygwin\bin\bash.exe -leo pipefail -c "cd /cygdrive/d/a/office-core/office-core && make MSI_PACKAGE=1"
+      run: C:\cygwin\bin\bash -l -c "cd /cygdrive/d/a/office-core/office-core && make MSI_PACKAGE=1"
 
     - name: Upload TellesoftOffice.msi
       uses: actions/upload-artifact@v4
