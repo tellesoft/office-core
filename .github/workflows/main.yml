@@ -19,9 +19,9 @@ jobs:
 
     - name: Install pkgconf (required by LibreOffice)
       run: |
-        Invoke-WebRequest -Uri https://distfiles.dereferenced.org/pkgconf/pkgconf-1.9.5.tar.xz -OutFile pkgconf.tar.xz
-        tar -xf pkgconf.tar.xz
-        echo "${{ github.workspace }}\pkgconf-1.9.5" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        Invoke-WebRequest -Uri https://github.com/pkgconf/pkgconf/releases/download/pkgconf-1.9.5/pkgconf-1.9.5-windows.zip -OutFile pkgconf.zip
+        tar -xf pkgconf.zip
+        echo "${{ github.workspace }}\pkgconf-1.9.5-windows" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
       shell: pwsh
 
     - name: Prepare autogen.input
