@@ -1,0 +1,57 @@
+name: build
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-2022
+
+    steps:
+    - name: Checkout source code
+      uses: actions/checkout@v4
+
+    - name: Set up MSBuild
+      uses: microsoft/setup-msbuild@v1.3.1
+
+    - name: Install MSYS2 manually (no Chocolatey)
+      shell: powershell
+      run: |
+        Invoke-WebRequest -Uri https://mirror.msys2.org/distrib/x86_64/msys2-base-x86_64-20240128.tar.xz -OutFile msys2.tar.xz
+        tar -xf msys2.tar.xz
+        echo "$PWD\\msys64\\usr\\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        echo "$PWD\\msys64\\mingw64\\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+    - name: Add Unix tools to Windows PATH
+      run: echo "$env:GITHUB_WORKSPACE\\msys64\\usr\\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+    - name: Prepare autogen.input
+      run: |
+        echo --with-theme=colibre > autogen.input
+        echo --with-lang=en-US >> autogen.input
+        echo --disable-dconf >> autogen.input
+        echo --disable-gnome-vfs >> autogen.input
+        echo --disable-firebird-sdbc >> autogen.input
+        echo --enable-release-build >> autogen.input
+        echo --with-product-name=Tellesoft Office >> autogen.input
+        echo --with-package-format=msi >> autogen.input
+
+    - name: Run autogen.sh inside MSYS2
+      shell: msys2 {0}
+      run: ./autogen.sh
+
+    - name: Build LibreOffice
+      shell: msys2 {0}
+      run: make
+
+    - name: Package Installer (MSI)
+      shell: msys2 {0}
+      run: make package
+
+    - name: Upload MSI installer
+      uses: actions/upload-artifact@v4
+      with:
+        name: TellesoftOfficeInstaller
+        path: instdir/TellesoftOffice.msi
