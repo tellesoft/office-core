@@ -32,11 +32,11 @@ jobs:
 
       - name: Prepare autogen.input
         run: |
-          echo '--with-external-tar="$env:GITHUB_WORKSPACE/ext_sources"' > autogen.input
-          echo '--enable-release-build' >> autogen.input
-          echo '--with-lang=en-US' >> autogen.input
-          echo '--disable-dependency-tracking' >> autogen.input
-          echo "PKG_CONFIG=$env:GITHUB_WORKSPACE\\pkgconf\\pkgconf.exe" >> autogen.input
+          Add-Content autogen.input '--with-external-tar=$env:GITHUB_WORKSPACE/ext_sources'
+          Add-Content autogen.input '--enable-release-build'
+          Add-Content autogen.input '--with-lang=en-US'
+          Add-Content autogen.input '--disable-dependency-tracking'
+          Add-Content autogen.input "PKG_CONFIG=$env:GITHUB_WORKSPACE\pkgconf\pkgconf.exe"
 
       - name: Run autogen.sh inside MSYS2
         shell: msys2 {0}
@@ -44,7 +44,7 @@ jobs:
           cd $GITHUB_WORKSPACE
           ./autogen.sh
 
-      - name: Build LibreOffice (Tellesoft Office)
+      - name: Build Tellesoft Office
         shell: msys2 {0}
         run: |
           cd $GITHUB_WORKSPACE
