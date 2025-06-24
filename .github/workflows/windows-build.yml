@@ -9,8 +9,8 @@ on:
 jobs:
   build:
     runs-on: windows-latest
-    steps:
 
+    steps:
     - name: Checkout source code
       uses: actions/checkout@v4
 
@@ -28,7 +28,7 @@ jobs:
     - name: Set up MSVC environment
       uses: microsoft/setup-msbuild@v1.1
 
-    - name: Set up MSYS2 (for tools only)
+    - name: Set up MSYS2 for autotools
       uses: msys2/setup-msys2@v2
       with:
         msystem: MSYS
@@ -39,18 +39,20 @@ jobs:
           autoconf
           automake
           libtool
-          pkg-config
+          pkgconf
           make
           sed
           grep
           perl
 
     - name: Prepare autogen.input
-      run: echo "--disable-firebird-sdbc" >> autogen.input
+      run: |
+        echo "--disable-firebird-sdbc" >> autogen.input
 
     - name: Run autogen.sh inside MSYS2 Bash
       shell: msys2 {0}
       run: |
+        export PKG_CONFIG=$(which pkgconf)
         ./autogen.sh --with-lang=en-US --disable-firebird-sdbc
 
     - name: Build LibreOffice
