@@ -2,9 +2,9 @@ name: build
 
 on:
   push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
+    branches:
+      - main
+  workflow_dispatch:
 
 jobs:
   build:
@@ -14,72 +14,55 @@ jobs:
     - name: Checkout source code
       uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
-
-    - name: Install winflexbison and 7zip manually
-      run: |
-        curl -LO https://github.com/lexxmark/winflexbison/releases/download/v2.5.22/win_flex_bison-2.5.22.zip
-        curl -LO https://www.7-zip.org/a/7z2301-x64.exe
-        Start-Process .\7z2301-x64.exe -ArgumentList "/S" -NoNewWindow -Wait
-        & "C:\Program Files\7-Zip\7z.exe" x win_flex_bison-2.5.22.zip -oC:\winflexbison
-        echo "C:\winflexbison" | Out-File -Append -Encoding ascii $env:GITHUB_PATH
-
     - name: Install Visual Studio Build Tools 2022 with required components
-      run: |
-        curl -LO https://aka.ms/vs/17/release/vs_BuildTools.exe
-        Start-Process .\vs_BuildTools.exe -ArgumentList '--quiet', '--wait', '--norestart', '--nocache', `
-          '--installPath', 'C:\BuildTools', `
-          '--add', 'Microsoft.VisualStudio.Workload.VCTools', `
-          '--add', 'Microsoft.VisualStudio.Component.VC.Tools.x86.x64', `
-          '--add', 'Microsoft.VisualStudio.Component.Windows10SDK.20348' `
-          -NoNewWindow -Wait
-
-    - name: Set up MSYS2 just to install Unix dependencies
-      uses: msys2/setup-msys2@v2
+      uses: microsoft/setup-msbuild@v1
       with:
-        msystem: MSYS
-        update: true
-        install: >-
-          autoconf
-          automake
-          make
-          libtool
-          pkgconf
-          sed
-          grep
-          perl
-          git
+        vs-version: '[17.4,18.0)'
 
-    - name: Copy Unix tools to Windows PATH
+    - name: Install 7zip
       run: |
-        echo "C:\msys64\usr\bin" | Out-File -Append -Encoding ascii $env:GITHUB_PATH
+        Invoke-WebRequest -Uri https://www.7-zip.org/a/7z2301-x64.exe -OutFile 7z.exe
+        Start-Process .\7z.exe /S -Wait
+
+    - name: Install MSYS2 manually (no Chocolatey)
+      run: |
+        Invoke-WebRequest -Uri https://mirror.msys2.org/distrib/x86_64/msys2-base-x86_64-20231026.tar.xz -OutFile msys2.tar.xz
+        7z x msys2.tar.xz -aoa -omsys64 | Out-Null
+        7z x msys2.tar -aoa -omsys64 | Out-Null
+        echo "$env:GITHUB_WORKSPACE\msys64\usr\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        echo "$env:GITHUB_WORKSPACE\msys64\mingw64\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
     - name: Prepare autogen.input
-      run: echo "--disable-firebird-sdbc" >> autogen.input
+      run: echo '--enable-release-builds' > autogen.input
 
-    - name: Run autogen.sh inside Developer Command Prompt
-      shell: cmd
+    - name: Run autogen.sh inside MSYS2
+      shell: msys2 {0}
       run: |
-        "C:\BuildTools\Common7\Tools\VsDevCmd.bat" ^
-        && call autogen.sh --with-lang=en-US --disable-firebird-sdbc
+        cd "$GITHUB_WORKSPACE"
+        ./autogen.sh
 
     - name: Build LibreOffice
-      shell: cmd
+      shell: msys2 {0}
       run: |
-        "C:\BuildTools\Common7\Tools\VsDevCmd.bat" ^
-        && call make
+        cd "$GITHUB_WORKSPACE"
+        make -j$(nproc)
 
-    - name: Package MSI
-      shell: cmd
+    - name: Package Installer (MSI)
+      shell: msys2 {0}
       run: |
-        "C:\BuildTools\Common7\Tools\VsDevCmd.bat" ^
-        && call make msinstaller
+        cd "$GITHUB_WORKSPACE"
+        make installer
 
-    - name: Upload artifact
+    - name: Upload build directory
+      if: success()
       uses: actions/upload-artifact@v4
       with:
-        name: tellesuite-windows-msi
-        path: instdir\*.msi
+        name: build-instdir
+        path: instdir
+
+    - name: Upload MSI installer
+      if: success()
+      uses: actions/upload-artifact@v4
+      with:
+        name: tellesuite-installer
+        path: workdir/installation/arch/windows/msi/Install/*.msi
