@@ -1,3 +1,4 @@
+
 name: build
 
 on:
@@ -9,6 +10,7 @@ on:
 jobs:
   build:
     runs-on: windows-latest
+
     steps:
     - name: Checkout source code
       uses: actions/checkout@v4
@@ -20,34 +22,36 @@ jobs:
 
     - name: Install winflexbison and 7zip manually
       run: |
-        curl -L -o winflexbison.zip https://github.com/lexxmark/winflexbison/releases/download/v2.5.22/win_flex_bison-2.5.22.zip
-        7z x winflexbison.zip -owinflexbison
-        echo "${{ github.workspace }}\\winflexbison" | Out-File -FilePath $env:GITHUB_PATH -Append
-        curl -L -o pkgconf.exe https://github.com/pkgconf/pkgconf/releases/download/pkgconf-2.0.3/pkgconf.exe
-        mkdir pkgconf-bin
-        move pkgconf.exe pkgconf-bin\
-        echo "${{ github.workspace }}\\pkgconf-bin" | Out-File -FilePath $env:GITHUB_PATH -Append
+        curl -LO https://github.com/lexxmark/winflexbison/releases/download/v2.5.22/win_flex_bison-2.5.22.zip
+        7z x win_flex_bison-2.5.22.zip -oC:\winflexbison
+        echo "C:\winflexbison" | Out-File -Append -Encoding ascii $env:GITHUB_PATH
 
-    - name: Set up Visual Studio
-      uses: microsoft/setup-msbuild@v1.1
-      with:
-        vs-version: 'latest'
+    - name: Install Visual Studio Build Tools 2022 with required components
+      run: |
+        curl -LO https://aka.ms/vs/17/release/vs_BuildTools.exe
+        Start-Process .\vs_BuildTools.exe -ArgumentList '--quiet', '--wait', '--norestart', '--nocache', `
+          '--installPath', 'C:\BuildTools', `
+          '--add', 'Microsoft.VisualStudio.Workload.VCTools', `
+          '--add', 'Microsoft.VisualStudio.Component.VC.Tools.x86.x64', `
+          '--add', 'Microsoft.VisualStudio.Component.Windows10SDK.20348' `
+          -NoNewWindow -Wait
 
-    - name: Set up MSYS2 (for tools, not shell)
+    - name: Set up MSYS2 for autotools
       uses: msys2/setup-msys2@v2
       with:
+        msystem: MSYS
         update: true
         install: >-
+          base-devel
           git
-          make
-          tar
-          pkg-config
           autoconf
           automake
           libtool
-          unzip
-          mingw-w64-x86_64-libxslt
-          mingw-w64-x86_64-tools
+          pkgconf
+          make
+          sed
+          grep
+          perl
 
     - name: Prepare autogen.input
       run: echo "--disable-firebird-sdbc" >> autogen.input
@@ -55,21 +59,20 @@ jobs:
     - name: Run autogen.sh inside MSYS2 Bash
       shell: msys2 {0}
       run: |
-        export PATH="$PATH:/c/Program Files (x86)/Microsoft Visual Studio/2019/BuildTools/MSBuild/Current/Bin"
-        export PATH="$PATH:/c/msys64/mingw64/bin"
-        export PKG_CONFIG="${{ github.workspace }}/pkgconf-bin/pkgconf.exe"
-        ./autogen.sh
+        export PATH="/c/BuildTools/VC/Tools/MSVC/14.*/bin/Hostx64/x64:$PATH"
+        export PKG_CONFIG=$(which pkgconf)
+        ./autogen.sh --with-lang=en-US --disable-firebird-sdbc
 
     - name: Build LibreOffice
-      run: |
-        echo "Simulated build step. Replace this with actual build commands."
+      shell: msys2 {0}
+      run: make
 
     - name: Package MSI
-      run: |
-        echo "Simulated packaging step. Replace this with actual packaging commands."
+      shell: msys2 {0}
+      run: make msinstaller
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
-        name: build-output
-        path: build/
+        name: tellesuite-windows-msi
+        path: instdir/*.msi
