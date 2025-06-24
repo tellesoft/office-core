@@ -23,12 +23,12 @@ jobs:
       run: |
         curl -LO https://github.com/lexxmark/winflexbison/releases/download/v2.5.22/win_flex_bison-2.5.22.zip
         7z x win_flex_bison-2.5.22.zip -oC:\winflexbison
-        echo "C:\winflexbison" >> $env:GITHUB_PATH
+        echo "C:\winflexbison" | Out-File -Append -Encoding ascii $env:GITHUB_PATH
 
     - name: Set up MSVC environment
       uses: microsoft/setup-msbuild@v1.1
 
-    - name: Set up MSYS2 (for tools, not shell)
+    - name: Set up MSYS2 (for tools only)
       uses: msys2/setup-msys2@v2
       with:
         msystem: MSYS
@@ -48,19 +48,18 @@ jobs:
     - name: Prepare autogen.input
       run: echo "--disable-firebird-sdbc" >> autogen.input
 
-    - name: Run autogen and configure (MSVC native)
-      shell: pwsh
+    - name: Run autogen.sh inside MSYS2 Bash
+      shell: msys2 {0}
       run: |
-        $env:PATH += ";C:\winflexbison"
-        bash -lc "./autogen.sh --with-lang=en-US --disable-firebird-sdbc"
+        ./autogen.sh --with-lang=en-US --disable-firebird-sdbc
 
     - name: Build LibreOffice
-      shell: bash
+      shell: msys2 {0}
       run: |
         make
 
     - name: Package MSI
-      shell: bash
+      shell: msys2 {0}
       run: |
         make msinstaller
 
