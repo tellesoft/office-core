@@ -18,7 +18,8 @@ jobs:
   uses: cygwin/cygwin-install-action@v4
   with:
     packages: >-
-      git make gcc-core gcc-g++ perl python3 autoconf automake libtool m4 pkg-config
+      git make gcc-core gcc-g++ perl python3 autoconf automake
+      libtool gettext pkg-config m4 unzip zip tar bison flex
 
     - name: Prepare autogen.input
       run: echo '--with-theme=colibre' > autogen.input
