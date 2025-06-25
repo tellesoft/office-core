@@ -17,22 +17,16 @@ jobs:
       - name: Set up MSBuild
         uses: microsoft/setup-msbuild@v1.1
 
-      - name: Install dependencies (Perl, Python, NASM, JDK)
-        shell: powershell
+      - name: Verify preinstalled dependencies
         run: |
-          choco install strawberryperl --no-progress --yes
-          choco install python3 --no-progress --yes
-          choco install nasm --no-progress --yes
-          choco install jdk17 --no-progress --yes
-          choco install 7zip --no-progress --yes
-          refreshenv
+          perl -v
+          python --version
+          where nasm
+          where javac
+          echo %JAVA_HOME%
+        shell: cmd
 
-      - name: Add JDK to environment
-        run: |
-          echo "JAVA_HOME=C:\\Program Files\\Eclipse Adoptium\\jdk-17*" >> $env:GITHUB_ENV
-        shell: powershell
-
-      - name: Install Cygwin for bash shell
+      - name: Install Cygwin for bash
         uses: cygwin/cygwin-install-action@v4
         with:
           packages: >-
@@ -52,7 +46,7 @@ jobs:
           echo '--with-theme=colibre' > autogen.input
           echo '--disable-firebird-sdbc' >> autogen.input
           echo '--disable-ccache' >> autogen.input
-          echo '--with-jdk-home="C:/Program Files/Eclipse Adoptium/jdk-17"' >> autogen.input
+          echo "--with-jdk-home=$JAVA_HOME" >> autogen.input
           echo '--with-visual-studio=2022' >> autogen.input
           echo '--with-windows-sdk=10.0' >> autogen.input
           echo '--enable-release-build=yes' >> autogen.input
