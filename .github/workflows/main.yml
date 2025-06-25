@@ -34,12 +34,12 @@ jobs:
     - name: Run autogen.sh using MSYS2 bash
       shell: cmd
       run: |
-        C:\_msys2\usr\bin\bash.exe -lc "cd $GITHUB_WORKSPACE && ./autogen.sh"
+        C:\_msys2\usr\bin\bash.exe -lc "cd \$(cygpath -u \"$GITHUB_WORKSPACE\") && ./autogen.sh"
 
     - name: Build Tellesoft Office
       shell: cmd
       run: |
-        C:\_msys2\usr\bin\bash.exe -lc "cd $GITHUB_WORKSPACE && make"
+        C:\_msys2\usr\bin\bash.exe -lc "cd \$(cygpath -u \"$GITHUB_WORKSPACE\") && make"
 
     - name: Generate MSI installer
       run: echo "MSI packaging logic goes here"
