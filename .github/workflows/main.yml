@@ -14,30 +14,35 @@ jobs:
     - name: Checkout source code
       uses: actions/checkout@v4
 
+    - name: Remove previous MSYS2 if exists
+      shell: cmd
+      run: |
+        if exist C:\_msys2 rmdir /s /q C:\_msys2
+
     - name: Download and install MSYS2
       shell: cmd
       run: |
         curl -L -o msys2-installer.exe https://github.com/msys2/msys2-installer/releases/download/2023-05-26/msys2-x86_64-20230526.exe
-        msys2-installer.exe install --root C:\msys64 --confirm-command
+        msys2-installer.exe install --root C:\_msys2 --confirm-command
 
     - name: Update MSYS2 and install base-devel
       shell: cmd
       run: |
-        C:\msys64\usr\bin\bash.exe -lc "pacman -Syuu --noconfirm"
-        C:\msys64\usr\bin\bash.exe -lc "pacman -S --noconfirm base-devel git"
+        C:\_msys2\usr\bin\bash.exe -lc "pacman -Syuu --noconfirm"
+        C:\_msys2\usr\bin\bash.exe -lc "pacman -S --noconfirm base-devel git"
 
     - name: Run autogen.sh using MSYS2 bash
       shell: cmd
       run: |
-        C:\msys64\usr\bin\bash.exe -lc "cd $GITHUB_WORKSPACE && ./autogen.sh"
+        C:\_msys2\usr\bin\bash.exe -lc "cd $GITHUB_WORKSPACE && ./autogen.sh"
 
     - name: Build Tellesoft Office
       shell: cmd
       run: |
-        C:\msys64\usr\bin\bash.exe -lc "cd $GITHUB_WORKSPACE && make"
+        C:\_msys2\usr\bin\bash.exe -lc "cd $GITHUB_WORKSPACE && make"
 
     - name: Generate MSI installer
-      run: echo "Generate MSI logic here"
+      run: echo "MSI packaging logic goes here"
 
     - name: Upload TellesoftOffice.msi
       uses: actions/upload-artifact@v4
