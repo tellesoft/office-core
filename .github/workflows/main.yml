@@ -1,4 +1,4 @@
-name: build
+name: Build Tellesoft Office MSI
 
 on:
   push:
@@ -14,18 +14,37 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v4
 
-      - name: Install Cygwin with required packages
+      - name: Set up MSBuild
+        uses: microsoft/setup-msbuild@v1.1
+
+      - name: Install Cygwin (bash only)
         uses: cygwin/cygwin-install-action@v4
         with:
           packages: >-
-            git make gcc-core gcc-g++ perl python3 autoconf automake
-            libtool gettext pkg-config m4 unzip zip tar bison flex
+            bash
+            unzip
+            zip
+            tar
+            bison
+            flex
+            perl
+            autoconf
+            automake
+            m4
+            pkg-config
 
       - name: Prepare autogen.input
-        run: echo '--with-theme=colibre' > autogen.input
+        run: |
+          echo '--with-theme=colibre' > autogen.input
+          echo '--disable-firebird-sdbc' >> autogen.input
+          echo '--disable-ccache' >> autogen.input
+          echo '--with-jdk-home="C:/Program Files/Java/jdk-17"' >> autogen.input
+          echo '--with-visual-studio=2022' >> autogen.input
+          echo '--with-windows-sdk=10.0' >> autogen.input
+          echo '--enable-release-build=yes' >> autogen.input
         shell: bash
 
-      - name: Run autogen.sh using Cygwin
+      - name: Run autogen.sh
         run: |
           C:/tools/cygwin/bin/bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && ./autogen.sh"
         shell: cmd
@@ -35,18 +54,18 @@ jobs:
           C:/tools/cygwin/bin/bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && make build-nocheck"
         shell: cmd
 
-      - name: Create MSI Installer (instsetoo_native)
+      - name: Generate MSI installer
         run: |
           C:/tools/cygwin/bin/bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && make instsetoo_native"
         shell: cmd
 
-      - name: Rename and move MSI
+      - name: Collect MSI output
         run: |
           mkdir output
           copy workdir\instsetoo_native\install\en-US\LibreOffice_*.msi output\TellesoftOffice.msi
         shell: cmd
 
-      - name: Upload TellesoftOffice.msi
+      - name: Upload MSI artifact
         uses: actions/upload-artifact@v4
         with:
           name: TellesoftOffice
