@@ -14,6 +14,9 @@ jobs:
     - name: Checkout source code
       uses: actions/checkout@v4
 
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v1.3.1
+
     - name: Download and install MSYS2
       shell: cmd
       run: |
@@ -26,22 +29,21 @@ jobs:
         C:\_msys2\usr\bin\bash.exe -lc "pacman -Syuu --noconfirm"
         C:\_msys2\usr\bin\bash.exe -lc "pacman -S --noconfirm base-devel git autoconf automake libtool pkgconf"
 
-    - name: Write autogen.input with PKG_CONFIG path
-      run: |
-        echo "PKG_CONFIG=/usr/bin/pkgconf" > autogen.input
+    - name: Write autogen.input with PKG_CONFIG
+      run: echo "PKG_CONFIG=/usr/bin/pkgconf" > autogen.input
       shell: bash
 
-    - name: Convert path and run autogen.sh
+    - name: Run autogen.sh using Visual Studio environment
       shell: cmd
       run: |
-        setlocal enabledelayedexpansion
+        call "%ProgramFiles(x86)%\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat"
         for /f "delims=" %%i in ('C:\_msys2\usr\bin\bash.exe -lc "cygpath -u '%GITHUB_WORKSPACE%'"') do set "WORKSPACE=%%i"
         C:\_msys2\usr\bin\bash.exe -lc "cd $WORKSPACE && ./autogen.sh"
 
     - name: Build Tellesoft Office
       shell: cmd
       run: |
-        setlocal enabledelayedexpansion
+        call "%ProgramFiles(x86)%\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat"
         for /f "delims=" %%i in ('C:\_msys2\usr\bin\bash.exe -lc "cygpath -u '%GITHUB_WORKSPACE%'"') do set "WORKSPACE=%%i"
         C:\_msys2\usr\bin\bash.exe -lc "cd $WORKSPACE && make -j$(nproc)"
 
