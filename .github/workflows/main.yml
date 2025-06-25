@@ -14,7 +14,7 @@ jobs:
     - name: Checkout source code
       uses: actions/checkout@v4
 
-    - name: Install MSYS2 and required packages
+    - name: Install MSYS2 and tools
       uses: msys2/setup-msys2@v2
       with:
         update: true
@@ -27,13 +27,11 @@ jobs:
           git
           zip
           unzip
-          mingw-w64-x86_64-gcc
-          mingw-w64-x86_64-toolchain
 
     - name: Set up MSVC environment
       uses: ilammy/msvc-dev-cmd@v1
 
-    - name: Run autogen.sh
+    - name: Run autogen.sh with MSYS2
       shell: msys2 {0}
       run: |
         ./autogen.sh \
@@ -43,12 +41,9 @@ jobs:
           --enable-release-build=yes \
           --with-java \
           --with-package-format=msi \
-          --host=x86_64-w64-mingw32 \
-          --build=x86_64-pc-linux-gnu \
-          --srcdir=$(pwd) \
           --enable-option-checking=fatal
 
-    - name: Build LibreOffice (Tellesoft Office)
+    - name: Build Tellesoft Office
       shell: msys2 {0}
       run: |
         make -j$(nproc)
@@ -62,4 +57,4 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: TellesoftOffice.msi
-        path: instdir/install/en-US/Tellesoft
+        path: instdir/install/en-US/TellesoftOffice.msi
