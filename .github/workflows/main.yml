@@ -4,7 +4,57 @@ on:
   push:
     branches: [master]
   pull_request:
+    branches: [master]name: Build Tellesoft Office MSI
+
+on:
+  push:
     branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Install required build tools
+        run: |
+          choco install strawberryperl --no-progress -y
+          choco install nasm --no-progress -y
+          choco install jdk17 --no-progress -y
+          choco install make --no-progress -y
+        shell: powershell
+
+      - name: Configure Visual Studio Build Environment
+        run: |
+          echo "call \"C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat\"" > vsenv.bat
+          echo "bash autogen.sh" >> vsenv.bat
+          call vsenv.bat
+        shell: cmd
+
+      - name: Build LibreOffice (Tellesoft Office)
+        run: |
+          echo "call \"C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat\"" > build.bat
+          echo "make build-nocheck" >> build.bat
+          call build.bat
+        shell: cmd
+
+      - name: Generate MSI installer
+        run: |
+          echo "call \"C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat\"" > msi.bat
+          echo "make instsetoo_native" >> msi.bat
+          call msi.bat
+        shell: cmd
+
+      - name: Upload TellesoftOffice.msi
+        uses: actions/upload-artifact@v4
+        with:
+          name: TellesoftOffice-Installer
+          path: workdir/instsetoo_native/install/en-US/*.msi
+
 
 jobs:
   build:
