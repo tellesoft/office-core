@@ -1,64 +1,77 @@
-name: build
-
+name: Build LibreOffice (Windows)
 on:
+  workflow_dispatch: {}
   push:
-    branches: [master]
-  pull_request:
-    branches: [master]
+    branches: [ main ]
 
 jobs:
   build:
     runs-on: windows-latest
-
+    env:
+      # Ensure UTF-8 for Cygwin and avoid locale issues
+      LANG: C.UTF-8
     steps:
-    - name: Checkout source code
-      uses: actions/checkout@v4
+      # 1. Prevent CRLF issues in checked-out scripts
+      - name: Configure git for LF line endings
+        run: git config --global core.autocrlf input
 
-    - name: Install Cygwin with required packages
-      uses: cygwin/cygwin-install-action@v4
-      with:
-        packages: >-
-          git make gcc-core gcc-g++ perl python3 autoconf automake
-          libtool gettext pkg-config m4 unzip zip tar bison flex
-          dos2unix
+      # 2. Check out the LibreOffice fork repository
+      - name: Check out code
+        uses: actions/checkout@v4
 
-    - name: Add Cygwin to PATH
-      run: echo "C:\cygwin\bin" >> $env:GITHUB_PATH
-      shell: pwsh
+      # 3. Install Cygwin and required packages (using official action)
+      - name: Install Cygwin (with required packages)
+        uses: cygwin/cygwin-install-action@v5
+        with:
+          platform: x86_64
+          packages: >-  # List of packages required for LibreOffice build
+            autoconf automake bison cabextract doxygen flex gettext-devel git gnupg gperf
+            libxml2-devel libpng12-devel make mintty nano nasm openssh openssl patch perl
+            pkg-config readline rsync unzip wget zip perl-Archive-Zip perl-Font-TTF
+            perl-IO-String python python3
 
-    - name: Prepare autogen.input
-      run: echo '--with-theme=colibre' > autogen.input
-      shell: bash
+      # 4. Install MSVC-compatible GNU Make for LibreOffice (into /opt/lo/bin)
+      - name: Install LibreOffice MSVC-compatible make
+        shell: "C:\\cygwin64\\bin\\bash.exe --login {0}"
+        run: |
+          set -e
+          wget -O /tmp/make-4.2.1-msvc.exe https://dev-www.libreoffice.org/bin/cygwin/make-4.2.1-msvc.exe
+          mkdir -p /opt/lo/bin
+          mv /tmp/make-4.2.1-msvc.exe /opt/lo/bin/make.exe
+          # Create a Cygwin symlink or copy to have a 'make' without extension (optional)
+          cd /opt/lo/bin && cp make.exe make && chmod +x make*
 
-    - name: Convert line endings (fix CRLF issues)
-      run: |
-        C:\cygwin\bin\bash.exe -lc "dos2unix $(find . -name autogen.sh)"
-      shell: cmd
+      # 5. Set up Java JDK (for LibreOffice Java requirements)
+      - name: Set up Java (Temurin JDK 17)
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          architecture: 'x64'
 
-    - name: Run autogen.sh using Cygwin + Visual Studio
-      run: |
-        call "C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\Tools\VsDevCmd.bat" &&
-        C:\cygwin\bin\bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && ./autogen.sh --with-theme=colibre --srcdir=$(cygpath -u '${{ github.workspace }}') --enable-option-checking=fatal"
-      shell: cmd
+      # 6. Set up Visual Studio 2022 Developer Command Prompt environment
+      - name: Set up MSVC environment (VS 2022)
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+          vsversion: 2022
 
-    - name: Build LibreOffice (Tellesoft Office)
-      run: |
-        C:\cygwin\bin\bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && make"
-      shell: cmd
-
-    - name: Create MSI Installer (instsetoo_native)
-      run: |
-        C:\cygwin\bin\bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && make MSI_PACKAGE=1"
-      shell: cmd
-
-    - name: Rename and move MSI
-      run: |
-        mkdir output
-        move instdir\*.msi output\TellesoftOffice.msi
-      shell: cmd
-
-    - name: Upload MSI artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: TellesoftOfficeInstaller
-        path: output/TellesoftOffice.msi
+      # 7. Configure and build LibreOffice
+      - name: Configure and build LibreOffice
+        shell: "C:\\cygwin64\\bin\\bash.exe --login {0}"
+        env:
+          # Pass through Java home path to Cygwin environment
+          JAVA_HOME: ${{ env.JAVA_HOME }}
+        run: |
+          set -e
+          shopt -s igncr  # Ignore CR in this script
+          # Change to the repository directory (convert Windows path to Cygwin path)
+          cd "$(cygpath -u "$GITHUB_WORKSPACE")"
+          # Run autogen.sh (configure) with appropriate options
+          JDK_PATH="$(cygpath -m "$JAVA_HOME")"
+          ./autogen.sh --with-visual-studio=2022 --host=x86_64-pc-cygwin \
+                       --with-package-format=msi --without-junit \
+                       --enable-pch --disable-ccache \
+                       --with-jdk-home="$JDK_PATH"
+          # Build LibreOffice using the MSVC-compatible make
+          /opt/lo/bin/make
