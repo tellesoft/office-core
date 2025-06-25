@@ -19,51 +19,40 @@ jobs:
       with:
         packages: >-
           git make gcc-core gcc-g++ perl python3 autoconf automake
-          libtool gettext pkg-config m4 unzip zip tar bison flex
-          dos2unix
+          libtool gettext pkg-config m4 unzip zip tar bison flex dos2unix
 
     - name: Prepare autogen.input
       run: echo '--with-theme=colibre' > autogen.input
       shell: bash
 
     - name: Convert autogen.sh line endings (fix \r issues)
-      run: C:\cygwin\bin\bash.exe -lc "dos2unix $(cygpath -u '${{ github.workspace }}')/autogen.sh"
-      shell: cmd
-
-    - name: Fix all *.sh and config.* scripts line endings
       run: |
-        C:\cygwin\bin\bash.exe -lc "find $(cygpath -u '${{ github.workspace }}') -type f \( -name '*.sh' -o -name 'config.*' \) -exec dos2unix {} +"
+        C:\cygwin\bin\bash.exe -lc "dos2unix $(cygpath -u '${{ github.workspace }}/autogen.sh')"
       shell: cmd
 
     - name: Run autogen.sh using Cygwin + Visual Studio
-      run: |
-        call "C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\Tools\VsDevCmd.bat" &&
-        C:\cygwin\bin\bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && ./autogen.sh"
       shell: cmd
+      run: |
+        call "C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\Tools\VsDevCmd.bat"
+        C:\cygwin\bin\bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && ./autogen.sh"
 
     - name: Build LibreOffice (Tellesoft Office)
-      run: |
-        call "C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\Tools\VsDevCmd.bat" &&
-        C:\cygwin\bin\bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && make build-nocheck"
       shell: cmd
+      run: |
+        C:\cygwin\bin\bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && make build-nocheck"
 
     - name: Create MSI Installer (instsetoo_native)
-      run: |
-        call "C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\Tools\VsDevCmd.bat" &&
-        C:\cygwin\bin\bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && make installer"
       shell: cmd
+      run: |
+        C:\cygwin\bin\bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && cd instsetoo_native && make"
 
     - name: Rename and move MSI
       run: |
-        for /r %%f in (*.msi) do (
-          if not exist "TellesoftOffice.msi" (
-            copy "%%f" "TellesoftOffice.msi"
-          )
-        )
-      shell: cmd
+        mkdir -p output
+        move instsetoo_native\win64\*.msi output\TellesoftOffice.msi
 
     - name: Upload MSI artifact
       uses: actions/upload-artifact@v4
       with:
-        name: TellesoftOffice.msi
-        path: TellesoftOffice.msi
+        name: TellesoftOffice
+        path: output/TellesoftOffice.msi
