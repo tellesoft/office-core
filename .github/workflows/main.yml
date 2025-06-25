@@ -2,11 +2,9 @@ name: build
 
 on:
   push:
-    branches:
-      - master
+    branches: [ master ]
   pull_request:
-    branches:
-      - master
+    branches: [ master ]
 
 jobs:
   build:
@@ -16,32 +14,53 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v3
 
-      - name: Install Cygwin and packages
+      - name: Install Cygwin and required packages
         uses: cygwin/cygwin-install-action@v4
         with:
-          packages: >
-            gcc-core gcc-g++ make autoconf automake libtool
-            git unzip zip bison flex pkg-config perl python3
-            libxslt curl wget gnupg p7zip tar
+          packages: >-
+            make
+            gcc-core
+            gcc-g++
+            autoconf
+            automake
+            libtool
+            pkg-config
+            git
+            unzip
+            zip
+            perl
+            bison
+            flex
+            gperf
+            python3
+            wget
+            curl
 
-      - name: Prepare autogen.input
+      - name: Prepare autogen input
         run: echo '--with-theme=colibre' > autogen.input
+        shell: bash
 
       - name: Run autogen.sh using Cygwin
+        shell: bash
         run: |
-          C:\cygwin64\bin\bash -lc "cd \"$(cygpath -u '${{ github.workspace }}')\" && ./autogen.sh"
+          cd "$(cygpath -u "$GITHUB_WORKSPACE")"
+          ./autogen.sh < autogen.input
 
       - name: Build LibreOffice (Tellesoft Office)
+        shell: bash
         run: |
-          C:\cygwin64\bin\bash -lc "cd \"$(cygpath -u '${{ github.workspace }}')\" && make"
+          cd "$(cygpath -u "$GITHUB_WORKSPACE")"
+          make
 
       - name: Package Installer (MSI)
+        shell: bash
         run: |
-          C:\cygwin64\bin\bash -lc "cd \"$(cygpath -u '${{ github.workspace }}')\" && make msinstaller"
+          cd "$(cygpath -u "$GITHUB_WORKSPACE")"
+          make msicreator
+          mv instdir/TellesoftOffice.msi .
 
       - name: Upload TellesoftOffice.msi
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
-          name: TellesoftOffice.msi
-          path: |
-            **/TellesoftOffice.msi
+          name: TellesoftOfficeInstaller
+          path: TellesoftOffice.msi
