@@ -14,26 +14,28 @@ jobs:
     - name: Checkout source code
       uses: actions/checkout@v4
 
-    - name: Set up MSVC environment file
+    - name: Download and extract MSYS2
+      run: |
+        curl -L -o msys2.zip https://github.com/msys2/msys2-installer/releases/download/2024-05-22/msys2-base-x86_64-20240522.tar.xz
+        mkdir msys2
+        tar -xvf msys2.zip -C msys2 --strip-components=1
+        echo "MSYS2 extracted"
+
+    - name: Set up MSVC environment
       run: |
         echo call "\"C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat\"" > vsenv.bat
-        type vsenv.bat
 
-    - name: Run autogen.sh using MSYS2 + MSVC
-      shell: msys2 {0}
+    - name: Run autogen.sh using MSYS2 bash
       run: |
-        ./vsenv.bat
-        ./autogen.sh
+        msys2\usr\bin\bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && ./vsenv.bat && ./autogen.sh"
 
     - name: Build Tellesoft Office
-      shell: msys2 {0}
       run: |
-        make
+        msys2\usr\bin\bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && make"
 
     - name: Generate MSI installer
-      shell: msys2 {0}
       run: |
-        make installer
+        msys2\usr\bin\bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && make installer"
 
     - name: Upload TellesoftOffice.msi
       uses: actions/upload-artifact@v4
