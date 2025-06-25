@@ -33,7 +33,7 @@ jobs:
 
       - name: Run autogen.sh using Cygwin + Visual Studio
         run: |
-          call "C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\Tools\VsDevCmd.bat" && ^
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2022\Community\Common7\Tools\VsDevCmd.bat" && ^
           C:\cygwin\bin\bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && ./autogen.sh"
         shell: cmd
 
@@ -44,17 +44,17 @@ jobs:
 
       - name: Create MSI Installer (instsetoo_native)
         run: |
-          C:\cygwin\bin\bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && make install"
+          C:\cygwin\bin\bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && make instsetoo_native"
         shell: cmd
 
       - name: Rename and move MSI
         run: |
-          mkdir -p dist
-          move instdir\*.msi dist\TellesoftOffice.msi
+          mkdir -p output
+          copy /y instdir\TellesoftOffice*.msi output\TellesoftOffice.msi
         shell: cmd
 
       - name: Upload MSI artifact
         uses: actions/upload-artifact@v4
         with:
           name: TellesoftOffice
-          path: dist/TellesoftOffice.msi
+          path: output/TellesoftOffice.msi
