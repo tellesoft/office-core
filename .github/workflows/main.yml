@@ -32,8 +32,8 @@ jobs:
 
     - name: Convert line endings (fix CRLF issues)
       run: |
-        dos2unix $(find . -name 'autogen.sh')
-      shell: C:\cygwin\bin\bash.exe -lc
+        C:\cygwin\bin\bash.exe -lc "dos2unix $(find . -name autogen.sh)"
+      shell: cmd
 
     - name: Run autogen.sh using Cygwin + Visual Studio
       run: |
@@ -53,7 +53,7 @@ jobs:
 
     - name: Rename and move MSI
       run: |
-        mkdir -p output
+        mkdir output
         move instdir\*.msi output\TellesoftOffice.msi
       shell: cmd
 
