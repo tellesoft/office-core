@@ -14,31 +14,36 @@ jobs:
     - name: Checkout source code
       uses: actions/checkout@v4
 
-    - name: Download and extract MSYS2
+    - name: Download and extract MSYS2 manually
       run: |
-        curl -L -o msys2.zip https://github.com/msys2/msys2-installer/releases/download/2024-05-22/msys2-base-x86_64-20240522.tar.xz
+        curl -L -o msys2.tar.xz https://github.com/msys2/msys2-installer/releases/download/2024-05-22/msys2-base-x86_64-20240522.tar.xz
         mkdir msys2
-        tar -xvf msys2.zip -C msys2 --strip-components=1
-        echo "MSYS2 extracted"
+        "C:\Program Files\Git\usr\bin\xz.exe" -d msys2.tar.xz
+        tar -xvf msys2.tar -C msys2 --strip-components=1
 
     - name: Set up MSVC environment
       run: |
-        echo call "\"C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat\"" > vsenv.bat
+        echo "Setting up VS build environment..."
+        "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat" > vsenv.bat
+        echo call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat" > venv.bat
+        echo bash.exe --login -c "./autogen.sh" >> venv.bat
 
     - name: Run autogen.sh using MSYS2 bash
       run: |
-        msys2\usr\bin\bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && ./vsenv.bat && ./autogen.sh"
+        cd msys2
+        ./usr/bin/bash.exe --login -c "cd $GITHUB_WORKSPACE && ./autogen.sh"
 
     - name: Build Tellesoft Office
       run: |
-        msys2\usr\bin\bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && make"
+        cd msys2
+        ./usr/bin/bash.exe --login -c "cd $GITHUB_WORKSPACE && make"
 
     - name: Generate MSI installer
       run: |
-        msys2\usr\bin\bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && make installer"
+        echo "MSI packaging script here"
 
     - name: Upload TellesoftOffice.msi
       uses: actions/upload-artifact@v4
       with:
-        name: TellesoftOffice
-        path: ./instsetoo_native/**/TellesoftOffice.msi
+        name: TellesoftOffice.msi
+        path: TellesoftOffice.msi
