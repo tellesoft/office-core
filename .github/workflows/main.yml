@@ -26,37 +26,21 @@ jobs:
           -find "Common7\Tools\VsDevCmd.bat"
         echo "VS_PATH=$vsPath" >> $env:GITHUB_ENV
 
-    - name: Install MSYS2
-      shell: cmd
-      run: |
-        curl -L -o msys2.exe https://github.com/msys2/msys2-installer/releases/download/2023-05-26/msys2-x86_64-20230526.exe
-        msys2.exe install --root C:\_msys2 --confirm-command
-
-    - name: Install build tools via pacman
-      shell: cmd
-      run: |
-        C:\_msys2\usr\bin\bash.exe -lc "pacman -Syuu --noconfirm"
-        C:\_msys2\usr\bin\bash.exe -lc "pacman -S --noconfirm base-devel git autoconf automake libtool pkgconf mingw-w64-x86_64-toolchain"
-
     - name: Prepare autogen.input
       shell: bash
       run: echo "PKG_CONFIG=/usr/bin/pkgconf" > autogen.input
 
-    - name: Run autogen.sh with Visual Studio and MSYS2
+    - name: Run autogen.sh with MSYS2 + Visual Studio
       shell: cmd
       run: |
-        call "%VS_PATH%" > vs_env.bat && ^
-        call vs_env.bat && ^
-        setlocal EnableDelayedExpansion && ^
-        for /f "delims=" %%i in ('C:\_msys2\usr\bin\bash.exe -lc "cygpath -u '%GITHUB_WORKSPACE%'"') do set "WORKSPACE=%%i" && ^
-        C:\_msys2\usr\bin\bash.exe -lc "cd $WORKSPACE && ./autogen.sh"
+        call "%VS_PATH%" && ^
+        C:\msys64\usr\bin\bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && ./autogen.sh"
 
     - name: Build Tellesoft Office
       shell: cmd
       run: |
         call "%VS_PATH%" && ^
-        for /f "delims=" %%i in ('C:\_msys2\usr\bin\bash.exe -lc "cygpath -u '%GITHUB_WORKSPACE%'"') do set "WORKSPACE=%%i" && ^
-        C:\_msys2\usr\bin\bash.exe -lc "cd $WORKSPACE && make -j$(nproc)"
+        C:\msys64\usr\bin\bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && make -j$(nproc)"
 
     - name: Generate MSI installer
       shell: bash
