@@ -15,10 +15,10 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Install Cygwin with required packages
-      uses: cygwin/cygwin-install-action@v4
-      with:
-        packages: >-
-          git make gcc-core gcc-g++ perl python3 autoconf automake
+  uses: cygwin/cygwin-install-action@v4
+  with:
+    packages: >-
+      git make gcc-core gcc-g++ perl python3 autoconf automake libtool m4 pkg-config
 
     - name: Prepare autogen.input
       run: echo '--with-theme=colibre' > autogen.input
