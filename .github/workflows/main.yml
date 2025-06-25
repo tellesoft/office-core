@@ -22,25 +22,22 @@ jobs:
           choco install make --no-progress -y
         shell: powershell
 
-      - name: Configure Visual Studio Build Environment
+      - name: Run autogen.sh using MSVC + Git Bash
         run: |
-          echo "call \"C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat\"" > vsenv.bat
-          echo "bash autogen.sh" >> vsenv.bat
-          call vsenv.bat
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          "C:\Program Files\Git\bin\bash.exe" ./autogen.sh
         shell: cmd
 
       - name: Build LibreOffice (Tellesoft Office)
         run: |
-          echo "call \"C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat\"" > build.bat
-          echo "make build-nocheck" >> build.bat
-          call build.bat
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          make build-nocheck
         shell: cmd
 
       - name: Generate MSI installer
         run: |
-          echo "call \"C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat\"" > msi.bat
-          echo "make instsetoo_native" >> msi.bat
-          call msi.bat
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          make instsetoo_native
         shell: cmd
 
       - name: Upload TellesoftOffice.msi
