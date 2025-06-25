@@ -11,40 +11,42 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - name: Checkout source code
-        uses: actions/checkout@v3
+    - name: Checkout source code
+      uses: actions/checkout@v4
 
-      - name: Install Cygwin to C:\tools\cygwin and required packages
-        run: |
-          choco install -y cygwin
-          choco install -y cyg-get
-          C:\tools\cygwin\setup-x86_64.exe -q -P git,make,gcc-core,gcc-g++,perl,python3,autoconf,automake
+    - name: Install Cygwin with required packages
+      uses: cygwin/cygwin-install-action@v4
+      with:
+        packages: >-
+          git make gcc-core gcc-g++ perl python3 autoconf automake
 
-      - name: Verify Cygwin installed
-        run: dir C:\tools\cygwin\bin\bash.exe
+    - name: Prepare autogen.input
+      run: echo '--with-theme=colibre' > autogen.input
+      shell: bash
 
-      - name: Prepare autogen.input
-        run: echo '--with-theme=colibre' > autogen.input
+    - name: Run autogen.sh using Cygwin
+      run: |
+        C:\cygwin\bin\bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && ./autogen.sh"
+      shell: cmd
 
-      - name: Run autogen.sh using Cygwin
-        run: |
-          C:\tools\cygwin\bin\bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && ./autogen.sh"
+    - name: Build LibreOffice (Tellesoft Office)
+      run: |
+        C:\cygwin\bin\bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && make build-nocheck"
+      shell: cmd
 
-      - name: Build LibreOffice (Tellesoft Office)
-        run: |
-          C:\tools\cygwin\bin\bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && make"
+    - name: Create MSI Installer (instsetoo_native)
+      run: |
+        C:\cygwin\bin\bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && make instsetoo_native"
+      shell: cmd
 
-      - name: Create MSI Installer (instsetoo_native)
-        run: |
-          C:\tools\cygwin\bin\bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && make distro-pack-install"
+    - name: Rename and move MSI
+      run: |
+        mkdir -p output
+        copy workdir\instsetoo_native\install\en-US\LibreOffice_*.msi output\TellesoftOffice.msi
+      shell: cmd
 
-      - name: Rename and move MSI
-        run: |
-          mkdir -p dist
-          copy /Y $(Get-ChildItem -Recurse -Filter "*.msi" | Select-Object -First 1).FullName dist\TellesoftOffice.msi
-
-      - name: Upload TellesoftOffice.msi
-        uses: actions/upload-artifact@v4
-        with:
-          name: TellesoftOffice.msi
-          path: dist/TellesoftOffice.msi
+    - name: Upload TellesoftOffice.msi
+      uses: actions/upload-artifact@v4
+      with:
+        name: TellesoftOffice
+        path: output/TellesoftOffice.msi
