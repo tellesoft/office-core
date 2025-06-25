@@ -14,7 +14,7 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v4
 
-      - name: Install required tools
+      - name: Install build dependencies
         run: |
           choco install make winflexbison3 wget unzip patch msys2 --yes
 
@@ -23,16 +23,15 @@ jobs:
           C:\tools\msys64\usr\bin\bash.exe -lc "pacman -Sy --noconfirm"
           C:\tools\msys64\usr\bin\bash.exe -lc "pacman -S --noconfirm autoconf automake libtool m4 gettext"
 
-      - name: Set up MSVC environment file
+      - name: Create VS Environment File
         run: |
           echo call "\"C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat\"" > vsenv.bat
 
       - name: Run autogen.sh using MSYS2 + MSVC
         shell: cmd
         run: |
-          cd %GITHUB_WORKSPACE%
           call vsenv.bat
-          C:\tools\msys64\usr\bin\bash.exe -lc "cd $(cygpath -u \"$PWD\") && ./autogen.sh --with-theme=colibre --disable-firebird-sdbc --disable-ccache --enable-release-build=yes --with-java --with-package-format=msi --enable-option-checking=fatal"
+          C:\tools\msys64\usr\bin\bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && ./autogen.sh --with-theme=colibre --disable-firebird-sdbc --disable-ccache --enable-release-build=yes --with-java --with-package-format=msi --enable-option-checking=fatal"
 
       - name: Build Tellesoft Office
         shell: cmd
