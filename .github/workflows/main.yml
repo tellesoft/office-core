@@ -2,61 +2,58 @@ name: build
 
 on:
   push:
-    branches: [ master ]
+    branches: [master]
   pull_request:
-    branches: [ master ]
+    branches: [master]
 
 jobs:
   build:
     runs-on: windows-latest
 
     steps:
-    - name: Checkout source code
-      uses: actions/checkout@v4
+      - name: Post Checkout source code
+        uses: actions/checkout@v4
 
-    - name: Set up MSBuild (preinstalled use only)
-      uses: microsoft/setup-msbuild@v1.3.1
+      - name: Install Cygwin and packages
+        uses: cygwin/cygwin-install-action@v4
+        with:
+          packages: >-
+            autoconf
+            automake
+            libtool
+            m4
+            pkgconf
+            make
+            gcc-core
+            gcc-g++
+            bison
+            flex
+            perl
+            python3
+            git
+            unzip
+            zip
+            which
+            wget
+            gettext-devel
 
-    - name: Install Cygwin and packages
-      uses: cygwin/cygwin-install-action@v4
-      with:
-        packages: >-
-          autoconf
-          automake
-          libtool
-          m4
-          pkgconf
-          make
-          gcc-core
-          gcc-g++
-          bison
-          flex
-          perl
-          python3
-          git
-          unzip
-          zip
-          which
-          wget
-          gettext-devel
+      - name: Prepare autogen.input
+        run: echo '--with-theme=colibre' > autogen.input
 
-    - name: Prepare autogen.input
-      run: |
-        echo '--with-theme=colibre' > autogen.input
-        echo '--enable-release-build' >> autogen.input
-      shell: bash
+      - name: Run autogen.sh using Cygwin
+        shell: cmd
+        run: C:\cygwin64\bin\bash -lc "cd $PWD && ./autogen.sh"
 
-    - name: Run autogen.sh using Cygwin
-      run: C:\cygwin\bin\bash -l -c "cd /cygdrive/d/a/office-core/office-core && ./autogen.sh"
+      - name: Build LibreOffice (Tellesoft Office)
+        shell: cmd
+        run: C:\cygwin64\bin\bash -lc "cd $PWD && make"
 
-    - name: Build LibreOffice (Tellesoft Office)
-      run: C:\cygwin\bin\bash -l -c "cd /cygdrive/d/a/office-core/office-core && make build-nocheck -j$(nproc)"
+      - name: Package Installer (MSI)
+        shell: cmd
+        run: C:\cygwin64\bin\bash -lc "cd $PWD && make package"
 
-    - name: Package Installer (MSI)
-      run: C:\cygwin\bin\bash -l -c "cd /cygdrive/d/a/office-core/office-core && make MSI_PACKAGE=1"
-
-    - name: Upload TellesoftOffice.msi
-      uses: actions/upload-artifact@v4
-      with:
-        name: TellesoftOffice
-        path: instdir/TellesoftOffice.msi
+      - name: Upload TellesoftOffice.msi
+        uses: actions/upload-artifact@v4
+        with:
+          name: TellesoftOffice
+          path: '**/TellesoftOffice.msi'
