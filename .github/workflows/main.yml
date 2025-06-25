@@ -14,25 +14,29 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v4
 
-      - name: Install Cygwin and required packages
+      - name: Install Cygwin to C:\cygwin64 and required packages
         run: |
           curl -L -o cygwin-setup.exe https://cygwin.com/setup-x86_64.exe
-          ./cygwin-setup.exe -q -P git,make,gcc-core,gcc-g++,perl,python3,autoconf,automake,libtool,libxslt,wget,zip,unzip,tar,bzip2,xz
+          mkdir C:\cygwin64
+          ./cygwin-setup.exe -q -n -R C:\cygwin64 -s http://cygwin.mirror.constant.com -l C:\cygwin64\var\cache\setup -P git,make,gcc-core,gcc-g++,perl,python3,autoconf,automake,libtool,libxslt,wget,zip,unzip,tar,bzip2,xz
+
+      - name: Verify Cygwin installed
+        run: dir C:\cygwin64\bin\bash.exe
 
       - name: Prepare autogen.input
         run: echo '--with-theme=colibre' > autogen.input
 
       - name: Run autogen.sh using Cygwin
         run: |
-          C:\cygwin64\bin\bash -lc "cd $(cygpath -u '${{ github.workspace }}') && ./autogen.sh"
+          C:\cygwin64\bin\bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && ./autogen.sh"
 
       - name: Build LibreOffice (Tellesoft Office)
         run: |
-          C:\cygwin64\bin\bash -lc "cd $(cygpath -u '${{ github.workspace }}') && make build-nocheck -j$(nproc)"
+          C:\cygwin64\bin\bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && make build-nocheck -j$(nproc)"
 
       - name: Create MSI Installer (instsetoo_native)
         run: |
-          C:\cygwin64\bin\bash -lc "cd $(cygpath -u '${{ github.workspace }}') && cd instsetoo_native && make -j$(nproc)"
+          C:\cygwin64\bin\bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}/instsetoo_native') && make -j$(nproc)"
 
       - name: Rename and move MSI
         run: |
