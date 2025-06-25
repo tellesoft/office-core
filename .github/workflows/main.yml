@@ -15,9 +15,9 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Download and extract MSYS2
-      shell: cmd
+      shell: powershell
       run: |
-        curl -L -o msys2.tar.xz https://github.com/msys2/msys2-installer/releases/download/2024-05-22/msys2-base-x86_64-20240522.tar.xz
+        Invoke-WebRequest -Uri "https://github.com/msys2/msys2-installer/releases/download/2024-05-22/msys2-base-x86_64-20240522.tar.xz" -OutFile "msys2.tar.xz"
         7z e msys2.tar.xz -o.
         7z x msys2.tar -omsys2
 
@@ -25,7 +25,7 @@ jobs:
       shell: cmd
       run: |
         echo call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat" > vsenv.bat
-        echo usr\bin\bash.exe --login -c "cd %GITHUB_WORKSPACE% && ./autogen.sh" >> vsenv.bat
+        echo msys2\usr\bin\bash.exe --login -c "cd %GITHUB_WORKSPACE% && ./autogen.sh" >> vsenv.bat
 
     - name: Run autogen.sh using MSYS2 bash
       shell: cmd
