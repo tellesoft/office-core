@@ -26,11 +26,26 @@ jobs:
           -find "Common7\Tools\VsDevCmd.bat"
         echo "VS_PATH=$vsPath" >> $env:GITHUB_ENV
 
+    - name: Install MSYS2
+      run: |
+        curl -LO https://mirror.msys2.org/distrib/x86_64/msys2-base-x86_64-20240127.tar.xz
+        7z x msys2-base-x86_64-20240127.tar.xz -so | 7z x -si -ttar -oC:\msys64
+
+    - name: Install required build tools
+      shell: bash
+      run: |
+        export PATH="/c/msys64/usr/bin:$PATH"
+        pacman -Sy --noconfirm
+        pacman -S --noconfirm \
+          pkgconf autoconf automake libtool \
+          make gcc git perl tar bison flex unzip zip \
+          gettext m4
+
     - name: Prepare autogen.input
       shell: bash
       run: echo "PKG_CONFIG=/usr/bin/pkgconf" > autogen.input
 
-    - name: Run autogen.sh with MSYS2 + Visual Studio
+    - name: Run autogen.sh using MSYS2 + Visual Studio
       shell: cmd
       run: |
         call "%VS_PATH%" && ^
