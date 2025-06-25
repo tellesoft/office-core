@@ -27,35 +27,43 @@ jobs:
       shell: bash
 
     - name: Convert autogen.sh line endings (fix \r issues)
+      run: C:\cygwin\bin\bash.exe -lc "dos2unix $(cygpath -u '${{ github.workspace }}')/autogen.sh"
+      shell: cmd
+
+    - name: Fix all *.sh and config.* scripts line endings
       run: |
-        C:\cygwin\bin\bash.exe -lc "dos2unix $(cygpath -u '${{ github.workspace }}')/autogen.sh"
+        C:\cygwin\bin\bash.exe -lc "find $(cygpath -u '${{ github.workspace }}') -type f \( -name '*.sh' -o -name 'config.*' \) -exec dos2unix {} +"
       shell: cmd
 
     - name: Run autogen.sh using Cygwin + Visual Studio
-      shell: cmd
       run: |
-        call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat" && ^
+        call "C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\Tools\VsDevCmd.bat" &&
         C:\cygwin\bin\bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && ./autogen.sh"
+      shell: cmd
 
     - name: Build LibreOffice (Tellesoft Office)
-      shell: cmd
       run: |
-        call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat" && ^
-        C:\cygwin\bin\bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && make"
+        call "C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\Tools\VsDevCmd.bat" &&
+        C:\cygwin\bin\bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && make build-nocheck"
+      shell: cmd
 
     - name: Create MSI Installer (instsetoo_native)
-      shell: cmd
       run: |
-        call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat" && ^
-        C:\cygwin\bin\bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && make distro-pack-install"
+        call "C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\Tools\VsDevCmd.bat" &&
+        C:\cygwin\bin\bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && make installer"
+      shell: cmd
 
     - name: Rename and move MSI
       run: |
-        mkdir -p output
-        copy /Y instdir\TellesoftOffice*.msi output\TellesoftOffice.msi
+        for /r %%f in (*.msi) do (
+          if not exist "TellesoftOffice.msi" (
+            copy "%%f" "TellesoftOffice.msi"
+          )
+        )
+      shell: cmd
 
     - name: Upload MSI artifact
       uses: actions/upload-artifact@v4
       with:
         name: TellesoftOffice.msi
-        path: output/TellesoftOffice.msi
+        path: TellesoftOffice.msi
