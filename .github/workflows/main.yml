@@ -1,4 +1,4 @@
-name: Build Tellesoft Office MSI
+name: build
 
 on:
   push:
@@ -11,37 +11,55 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - name: Checkout source code
-        uses: actions/checkout@v4
+    - name: Checkout source code
+      uses: actions/checkout@v4
 
-      - name: Install required build tools
-        run: |
-          choco install strawberryperl --no-progress -y
-          choco install nasm --no-progress -y
-          choco install jdk17 --no-progress -y
-          choco install make --no-progress -y
-        shell: powershell
+    - name: Install MSYS2 and required packages
+      uses: msys2/setup-msys2@v2
+      with:
+        update: true
+        install: >
+          base-devel
+          autoconf
+          automake
+          make
+          pkg-config
+          git
+          zip
+          unzip
+          mingw-w64-x86_64-gcc
+          mingw-w64-x86_64-toolchain
 
-      - name: Run autogen.sh using MSVC + Git Bash
-        run: |
-          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-          "C:\Program Files\Git\bin\bash.exe" ./autogen.sh
-        shell: cmd
+    - name: Set up MSVC environment
+      uses: ilammy/msvc-dev-cmd@v1
 
-      - name: Build LibreOffice (Tellesoft Office)
-        run: |
-          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-          make build-nocheck
-        shell: cmd
+    - name: Run autogen.sh
+      shell: msys2 {0}
+      run: |
+        ./autogen.sh \
+          --with-theme=colibre \
+          --disable-firebird-sdbc \
+          --disable-ccache \
+          --enable-release-build=yes \
+          --with-java \
+          --with-package-format=msi \
+          --host=x86_64-w64-mingw32 \
+          --build=x86_64-pc-linux-gnu \
+          --srcdir=$(pwd) \
+          --enable-option-checking=fatal
 
-      - name: Generate MSI installer
-        run: |
-          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-          make instsetoo_native
-        shell: cmd
+    - name: Build LibreOffice (Tellesoft Office)
+      shell: msys2 {0}
+      run: |
+        make -j$(nproc)
 
-      - name: Upload TellesoftOffice.msi
-        uses: actions/upload-artifact@v4
-        with:
-          name: TellesoftOffice-Installer
-          path: workdir/instsetoo_native/install/en-US/*.msi
+    - name: Generate MSI installer
+      shell: msys2 {0}
+      run: |
+        make installer
+
+    - name: Upload TellesoftOffice.msi
+      uses: actions/upload-artifact@v4
+      with:
+        name: TellesoftOffice.msi
+        path: instdir/install/en-US/Tellesoft
