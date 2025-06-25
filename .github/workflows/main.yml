@@ -26,6 +26,11 @@ jobs:
         C:\_msys2\usr\bin\bash.exe -lc "pacman -Syuu --noconfirm"
         C:\_msys2\usr\bin\bash.exe -lc "pacman -S --noconfirm base-devel git autoconf automake libtool pkgconf"
 
+    - name: Write autogen.input with PKG_CONFIG path
+      run: |
+        echo "PKG_CONFIG=/usr/bin/pkgconf" > autogen.input
+      shell: bash
+
     - name: Convert path and run autogen.sh
       shell: cmd
       run: |
@@ -43,7 +48,7 @@ jobs:
     - name: Generate MSI installer
       shell: cmd
       run: |
-        "C:\_msys2\usr\bin\bash.exe" -lc "cd $(cygpath -u '${{ github.workspace }}') && make install"
+        C:\_msys2\usr\bin\bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && make install"
 
     - name: Upload TellesoftOffice.msi
       uses: actions/upload-artifact@v4
