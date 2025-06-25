@@ -17,44 +17,43 @@ jobs:
     - name: Set up MSBuild
       uses: microsoft/setup-msbuild@v1.3.1
 
-    - name: Locate VsDevCmd.bat
+    - name: Find Visual Studio Developer Command Prompt
       id: find-vs
       shell: powershell
       run: |
-        $vsPath = & "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" `
-          -latest -products * -requires Microsoft.Component.MSBuild `
+        $vsPath = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" `
+          -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 `
           -find "Common7\Tools\VsDevCmd.bat"
-        echo "VS_PATH=$vsPath" >> $env:GITHUB_ENV
+        echo "VSDEVCMD=$vsPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
     - name: Install MSYS2
       run: |
         curl -LO https://mirror.msys2.org/distrib/x86_64/msys2-base-x86_64-20240127.tar.xz
         7z x msys2-base-x86_64-20240127.tar.xz -so | 7z x -si -ttar -oC:\msys64
 
-    - name: Install required build tools
+    - name: Install MSYS2 packages
       shell: bash
       run: |
         export PATH="/c/msys64/usr/bin:$PATH"
         pacman -Sy --noconfirm
         pacman -S --noconfirm \
-          pkgconf autoconf automake libtool \
-          make gcc git perl tar bison flex unzip zip \
-          gettext m4
+          git make gcc perl autoconf automake libtool gettext pkgconf m4 \
+          unzip zip tar bison flex
 
     - name: Prepare autogen.input
       shell: bash
       run: echo "PKG_CONFIG=/usr/bin/pkgconf" > autogen.input
 
-    - name: Run autogen.sh using MSYS2 + Visual Studio
+    - name: Run autogen.sh with MSYS2 + Visual Studio
       shell: cmd
       run: |
-        call "%VS_PATH%" && ^
+        call "%VSDEVCMD%" && ^
         C:\msys64\usr\bin\bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && ./autogen.sh"
 
     - name: Build Tellesoft Office
       shell: cmd
       run: |
-        call "%VS_PATH%" && ^
+        call "%VSDEVCMD%" && ^
         C:\msys64\usr\bin\bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && make -j$(nproc)"
 
     - name: Generate MSI installer
