@@ -33,9 +33,48 @@ jobs:
         shell: bash
 
       - name: Install LibreOffice MSVC-compatible make
+        shell: powershell
+        run: |
+          Invoke-WebRequest -Uri "https://dev-www.libreoffice.org/bin/cygwin/make-4.2.1-msvc.exe" -OutFile "C:\make.exe"
+          mkdir C:\opt\lo\bin
+          Move-Item C:\make.exe C:\opt\lo\bin\make.exe
+          Copy-Item C:\opt\lo\bin\make.exe C:\opt\lo\bin\make
+          # Cygwin doesn't use file extensions for commands; this provides compatibility
+
+      - name: Set up Java (Temurin JDK 17)
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up MSVC environment (VS 2022)
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Run autogen.sh using Cygwin + Visual Studio
+        shell: cmd
+        run: |
+          C:\cygwin\bin\bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && ./autogen.sh"
+
+      - name: Build LibreOffice (Tellesoft Office)
+        shell: cmd
+        run: |
+          C:\cygwin\bin\bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && make"
+
+      - name: Create MSI Installer (instsetoo_native)
+        shell: cmd
+        run: |
+          C:\cygwin\bin\bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && make package"
+
+      - name: Rename and move MSI
         shell: bash
         run: |
-          wget -O /tmp/make-4.2.1-msvc.exe https://dev-www.libreoffice.org/bin/cygwin/make-4.2.1-msvc.exe
-          mkdir -p /opt/lo/bin
-          mv /tmp/make-4.2.1-msvc.exe /opt/lo/bin/make.exe
-          cd /opt/lo/bin && cp make.exe make && chmod +x make
+          mkdir -p dist
+          find . -name "*.msi" -exec cp {} dist/TellesoftOffice.msi \;
+
+      - name: Upload MSI artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: TellesoftOfficeInstaller
+          path: dist/TellesoftOffice.msi
