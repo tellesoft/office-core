@@ -31,15 +31,19 @@ jobs:
         C:\_msys2\usr\bin\bash.exe -lc "pacman -Syuu --noconfirm"
         C:\_msys2\usr\bin\bash.exe -lc "pacman -S --noconfirm base-devel git"
 
-    - name: Run autogen.sh using MSYS2 bash
+    - name: Convert path and run autogen.sh
       shell: cmd
       run: |
-        C:\_msys2\usr\bin\bash.exe -lc "cd \$(cygpath -u \"$GITHUB_WORKSPACE\") && ./autogen.sh"
+        setlocal enabledelayedexpansion
+        for /f "delims=" %%i in ('C:\_msys2\usr\bin\bash.exe -lc "cygpath -u \"%GITHUB_WORKSPACE%\""') do set "UNIX_PATH=%%i"
+        C:\_msys2\usr\bin\bash.exe -lc "cd \"$UNIX_PATH\" && ./autogen.sh"
 
     - name: Build Tellesoft Office
       shell: cmd
       run: |
-        C:\_msys2\usr\bin\bash.exe -lc "cd \$(cygpath -u \"$GITHUB_WORKSPACE\") && make"
+        setlocal enabledelayedexpansion
+        for /f "delims=" %%i in ('C:\_msys2\usr\bin\bash.exe -lc "cygpath -u \"%GITHUB_WORKSPACE%\""') do set "UNIX_PATH=%%i"
+        C:\_msys2\usr\bin\bash.exe -lc "cd \"$UNIX_PATH\" && make"
 
     - name: Generate MSI installer
       run: echo "MSI packaging logic goes here"
