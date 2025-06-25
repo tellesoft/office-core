@@ -54,17 +54,17 @@ jobs:
 
       - name: Run autogen.sh
         run: |
-          C:\tools\cygwin\bin\bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && ./autogen.sh"
+          C:\cygwin\bin\bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && ./autogen.sh"
         shell: cmd
 
       - name: Build LibreOffice (Tellesoft Office)
         run: |
-          C:\tools\cygwin\bin\bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && make build-nocheck"
+          C:\cygwin\bin\bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && make build-nocheck"
         shell: cmd
 
       - name: Generate MSI installer
         run: |
-          C:\tools\cygwin\bin\bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && make instsetoo_native"
+          C:\cygwin\bin\bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && make instsetoo_native"
         shell: cmd
 
       - name: Collect MSI output
