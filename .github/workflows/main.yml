@@ -11,72 +11,31 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - name: Checkout source code
-      uses: actions/checkout@v4
+      - name: Checkout source code
+        uses: actions/checkout@v4
 
-    - name: Install Cygwin with required packages
-      uses: cygwin/cygwin-install-action@v4
-      with:
-        packages: >-
-          git make gcc-core gcc-g++ perl python3 autoconf automake
-          libtool gettext pkg-config m4 unzip zip tar bison flex
-          dos2unix wget
+      - name: Install Cygwin with required packages
+        uses: cygwin/cygwin-install-action@v4
+        with:
+          packages: >-
+            git make gcc-core gcc-g++ perl python3 autoconf automake
+            libtool gettext pkg-config m4 unzip zip tar bison flex dos2unix
 
-    - name: Add Cygwin to PATH
-      run: echo "C:\cygwin\bin" >> $env:GITHUB_PATH
-      shell: pwsh
+      - name: Add Cygwin to PATH
+        run: echo "C:\cygwin\bin" >> $env:GITHUB_PATH
 
-    - name: Prepare autogen.input
-      run: echo '--with-theme=colibre' > autogen.input
-      shell: bash
+      - name: Prepare autogen.input
+        run: echo '--with-theme=colibre' > autogen.input
+        shell: bash
 
-    - name: Convert line endings (fix CRLF issues)
-      run: dos2unix autogen.sh
-      shell: bash
+      - name: Convert line endings (fix CRLF issues)
+        run: dos2unix $(find . -name 'autogen.sh')
+        shell: bash
 
-    - name: Install LibreOffice MSVC-compatible make
-      shell: bash
-      run: |
-        set -e
-        wget -O /tmp/make-4.2.1-msvc.exe https://dev-www.libreoffice.org/bin/cygwin/make-4.2.1-msvc.exe
-        mkdir -p /opt/lo/bin
-        mv /tmp/make-4.2.1-msvc.exe /opt/lo/bin/make.exe
-        cd /opt/lo/bin && cp make.exe make && chmod +x make*
-
-    - name: Set up Java (Temurin JDK 17)
-      uses: actions/setup-java@v3
-      with:
-        distribution: 'temurin'
-        java-version: '17'
-
-    - name: Set up MSVC environment (VS 2022)
-      uses: ilammy/msvc-dev-cmd@v1
-      with:
-        arch: x64
-
-    - name: Run autogen.sh using Cygwin + Visual Studio
-      run: |
-        C:\cygwin\bin\bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && ./autogen.sh"
-      shell: cmd
-
-    - name: Build LibreOffice (Tellesoft Office)
-      run: |
-        C:\cygwin\bin\bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && make"
-      shell: cmd
-
-    - name: Create MSI Installer (instsetoo_native)
-      run: |
-        C:\cygwin\bin\bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}')/instdir && make"
-      shell: cmd
-
-    - name: Rename and move MSI
-      run: |
-        mkdir -p output
-        copy $(Get-ChildItem -Path . -Recurse -Filter *.msi | Select-Object -First 1).FullName output\TellesoftOffice.msi
-      shell: pwsh
-
-    - name: Upload MSI artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: TellesoftOfficeInstaller
-        path: output/TellesoftOffice.msi
+      - name: Install LibreOffice MSVC-compatible make
+        shell: bash
+        run: |
+          wget -O /tmp/make-4.2.1-msvc.exe https://dev-www.libreoffice.org/bin/cygwin/make-4.2.1-msvc.exe
+          mkdir -p /opt/lo/bin
+          mv /tmp/make-4.2.1-msvc.exe /opt/lo/bin/make.exe
+          cd /opt/lo/bin && cp make.exe make && chmod +x make
