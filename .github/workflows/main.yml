@@ -14,31 +14,30 @@ jobs:
     - name: Checkout source code
       uses: actions/checkout@v4
 
-    - name: Download and extract MSYS2 manually
+    - name: Download and install MSYS2
       shell: cmd
       run: |
-        curl -L -o msys2.tar.xz https://repo.msys2.org/distrib/x86_64/msys2-base-x86_64-20240128.tar.xz
-        7z e msys2.tar.xz -aoa -omsys2-temp
-        7z x msys2-temp\msys2.tar -omsys2 -aoa
+        curl -L -o msys2-installer.exe https://github.com/msys2/msys2-installer/releases/download/2023-05-26/msys2-x86_64-20230526.exe
+        msys2-installer.exe install --root C:\msys64 --confirm-command
 
-    - name: Set up MSVC environment
+    - name: Update MSYS2 and install base-devel
       shell: cmd
       run: |
-        echo call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat" > vsenv.bat
-        echo msys2\usr\bin\bash.exe --login -c "cd %GITHUB_WORKSPACE% && ./autogen.sh" >> vsenv.bat
+        C:\msys64\usr\bin\bash.exe -lc "pacman -Syuu --noconfirm"
+        C:\msys64\usr\bin\bash.exe -lc "pacman -S --noconfirm base-devel git"
 
     - name: Run autogen.sh using MSYS2 bash
       shell: cmd
       run: |
-        msys2\usr\bin\bash.exe --login -c "cd $GITHUB_WORKSPACE && ./autogen.sh"
+        C:\msys64\usr\bin\bash.exe -lc "cd $GITHUB_WORKSPACE && ./autogen.sh"
 
     - name: Build Tellesoft Office
       shell: cmd
       run: |
-        msys2\usr\bin\bash.exe --login -c "cd $GITHUB_WORKSPACE && make"
+        C:\msys64\usr\bin\bash.exe -lc "cd $GITHUB_WORKSPACE && make"
 
     - name: Generate MSI installer
-      run: echo "MSI packaging logic"
+      run: echo "Generate MSI logic here"
 
     - name: Upload TellesoftOffice.msi
       uses: actions/upload-artifact@v4
