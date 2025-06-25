@@ -17,34 +17,34 @@ jobs:
     - name: Setup MSBuild
       uses: microsoft/setup-msbuild@v1.3.1
 
-    - name: Download and install MSYS2
+    - name: Install MSYS2
       shell: cmd
       run: |
-        curl -L -o msys2-installer.exe https://github.com/msys2/msys2-installer/releases/download/2023-05-26/msys2-x86_64-20230526.exe
-        msys2-installer.exe install --root C:\_msys2 --confirm-command
+        curl -L -o msys2.exe https://github.com/msys2/msys2-installer/releases/download/2023-05-26/msys2-x86_64-20230526.exe
+        msys2.exe install --root C:\_msys2 --confirm-command
 
-    - name: Update MSYS2 and install build dependencies
+    - name: Update MSYS2 and install base-devel
       shell: cmd
       run: |
         C:\_msys2\usr\bin\bash.exe -lc "pacman -Syuu --noconfirm"
-        C:\_msys2\usr\bin\bash.exe -lc "pacman -S --noconfirm base-devel git autoconf automake libtool pkgconf"
+        C:\_msys2\usr\bin\bash.exe -lc "pacman -S --noconfirm base-devel git autoconf automake libtool pkgconf mingw-w64-x86_64-toolchain"
 
-    - name: Write autogen.input with PKG_CONFIG
-      run: echo "PKG_CONFIG=/usr/bin/pkgconf" > autogen.input
+    - name: Prepare autogen.input
       shell: bash
+      run: echo "PKG_CONFIG=/usr/bin/pkgconf" > autogen.input
 
-    - name: Run autogen.sh using Visual Studio environment
+    - name: Run autogen.sh using Visual Studio + MSYS2
       shell: cmd
       run: |
-        call "%ProgramFiles(x86)%\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat"
-        for /f "delims=" %%i in ('C:\_msys2\usr\bin\bash.exe -lc "cygpath -u '%GITHUB_WORKSPACE%'"') do set "WORKSPACE=%%i"
+        "%ProgramFiles(x86)%\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat" && ^
+        for /f "delims=" %%i in ('C:\_msys2\usr\bin\bash.exe -lc "cygpath -u '%GITHUB_WORKSPACE%'"') do set "WORKSPACE=%%i" && ^
         C:\_msys2\usr\bin\bash.exe -lc "cd $WORKSPACE && ./autogen.sh"
 
     - name: Build Tellesoft Office
       shell: cmd
       run: |
-        call "%ProgramFiles(x86)%\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat"
-        for /f "delims=" %%i in ('C:\_msys2\usr\bin\bash.exe -lc "cygpath -u '%GITHUB_WORKSPACE%'"') do set "WORKSPACE=%%i"
+        "%ProgramFiles(x86)%\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat" && ^
+        for /f "delims=" %%i in ('C:\_msys2\usr\bin\bash.exe -lc "cygpath -u '%GITHUB_WORKSPACE%'"') do set "WORKSPACE=%%i" && ^
         C:\_msys2\usr\bin\bash.exe -lc "cd $WORKSPACE && make -j$(nproc)"
 
     - name: Generate MSI installer
