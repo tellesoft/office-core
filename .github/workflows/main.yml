@@ -23,20 +23,22 @@ jobs:
         packages: >-
           autoconf
           automake
+          libtool
+          m4
+          pkgconf
+          make
           gcc-core
           gcc-g++
-          make
-          tar
-          pkgconf
           bison
           flex
-          git
           perl
           python3
+          git
           unzip
           zip
           which
           wget
+          gettext-devel
 
     - name: Prepare autogen.input
       run: |
