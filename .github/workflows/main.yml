@@ -14,12 +14,12 @@ jobs:
     - name: Checkout source code
       uses: actions/checkout@v4
 
-    - name: Download and extract MSYS2
+    - name: Download and extract MSYS2 manually
       shell: cmd
       run: |
-        curl.exe -L -A "Mozilla/5.0" -o msys2.tar.xz https://github.com/msys2/msys2-installer/releases/download/2024-05-22/msys2-base-x86_64-20240522.tar.xz
-        7z e msys2.tar.xz -o.
-        7z x msys2.tar -omsys2
+        curl -L -o msys2.tar.xz https://repo.msys2.org/distrib/x86_64/msys2-base-x86_64-20240128.tar.xz
+        7z e msys2.tar.xz -aoa -omsys2-temp
+        7z x msys2-temp\msys2.tar -omsys2 -aoa
 
     - name: Set up MSVC environment
       shell: cmd
@@ -38,8 +38,7 @@ jobs:
         msys2\usr\bin\bash.exe --login -c "cd $GITHUB_WORKSPACE && make"
 
     - name: Generate MSI installer
-      run: |
-        echo "MSI packaging logic goes here"
+      run: echo "MSI packaging logic"
 
     - name: Upload TellesoftOffice.msi
       uses: actions/upload-artifact@v4
