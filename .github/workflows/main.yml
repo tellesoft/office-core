@@ -11,9 +11,6 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - name: Set up job
-        run: echo Setting up job
-
       - name: Checkout source code
         uses: actions/checkout@v4
 
@@ -24,22 +21,22 @@ jobs:
           choco install wget --yes
           choco install unzip --yes
           choco install patch --yes
+          choco install msys2 --yes
+
+      - name: Install autotools with MSYS2
+        run: |
+          C:\tools\msys64\usr\bin\bash.exe -lc "pacman -Syu --noconfirm"
+          C:\tools\msys64\usr\bin\bash.exe -lc "pacman -S --noconfirm autoconf automake libtool m4 gettext"
 
       - name: Set up MSVC environment
-        run: echo call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat" > vsenv.bat
+        run: |
+          echo call "\"C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat\"" > vsenv.bat
 
       - name: Run autogen.sh with MSVC
         shell: cmd
         run: |
           call vsenv.bat
-          bash ./autogen.sh ^
-            --with-theme=colibre ^
-            --disable-firebird-sdbc ^
-            --disable-ccache ^
-            --enable-release-build=yes ^
-            --with-java ^
-            --with-package-format=msi ^
-            --enable-option-checking=fatal
+          C:\tools\msys64\usr\bin\bash.exe -lc "./autogen.sh --with-theme=colibre --disable-firebird-sdbc --disable-ccache --enable-release-build=yes --with-java --with-package-format=msi --enable-option-checking=fatal"
 
       - name: Build Tellesoft Office
         shell: cmd
