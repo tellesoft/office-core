@@ -36,14 +36,14 @@ jobs:
     - name: Run autogen.sh using Visual Studio + MSYS2
       shell: cmd
       run: |
-        "%ProgramFiles(x86)%\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat" && ^
+        call "%VSINSTALLDIR%\Common7\Tools\VsDevCmd.bat" && ^
         for /f "delims=" %%i in ('C:\_msys2\usr\bin\bash.exe -lc "cygpath -u '%GITHUB_WORKSPACE%'"') do set "WORKSPACE=%%i" && ^
         C:\_msys2\usr\bin\bash.exe -lc "cd $WORKSPACE && ./autogen.sh"
 
     - name: Build Tellesoft Office
       shell: cmd
       run: |
-        "%ProgramFiles(x86)%\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat" && ^
+        call "%VSINSTALLDIR%\Common7\Tools\VsDevCmd.bat" && ^
         for /f "delims=" %%i in ('C:\_msys2\usr\bin\bash.exe -lc "cygpath -u '%GITHUB_WORKSPACE%'"') do set "WORKSPACE=%%i" && ^
         C:\_msys2\usr\bin\bash.exe -lc "cd $WORKSPACE && make -j$(nproc)"
 
