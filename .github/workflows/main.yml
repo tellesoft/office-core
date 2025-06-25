@@ -11,55 +11,54 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - name: Checkout source code
-        uses: actions/checkout@v4
+    - name: Checkout source code
+      uses: actions/checkout@v4
 
-      - name: Install Cygwin with required packages
-        uses: cygwin/cygwin-install-action@v4
-        with:
-          packages: >-
-            git make gcc-core gcc-g++ perl python3 autoconf automake
-            libtool gettext pkg-config m4 unzip zip tar bison flex
-            dos2unix
+    - name: Install Cygwin with required packages
+      uses: cygwin/cygwin-install-action@v4
+      with:
+        packages: >-
+          git make gcc-core gcc-g++ perl python3 autoconf automake
+          libtool gettext pkg-config m4 unzip zip tar bison flex
+          dos2unix
 
-      - name: Prepare autogen.input
-        run: echo '--with-theme=colibre' > autogen.input
-        shell: bash
+    - name: Add Cygwin to PATH
+      run: echo "C:\cygwin\bin" >> $env:GITHUB_PATH
+      shell: pwsh
 
-      - name: Convert line endings (fix CRLF issues)
-        run: |
-          dos2unix $(find . -name 'autogen.sh')
-          dos2unix $(find . -name 'configure')
-          dos2unix $(find . -name 'config.sub')
-          dos2unix $(find . -name 'config.guess')
-        shell: C:\cygwin\bin\bash.exe -lc "bash"
+    - name: Prepare autogen.input
+      run: echo '--with-theme=colibre' > autogen.input
+      shell: bash
 
-      - name: Run autogen.sh using Cygwin + Visual Studio
-        shell: cmd
-        run: |
-          call "C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\Tools\VsDevCmd.bat" && ^
-          C:\cygwin\bin\bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && ./autogen.sh --with-theme=colibre --enable-option-checking=fatal"
+    - name: Convert line endings (fix CRLF issues)
+      run: |
+        dos2unix $(find . -name 'autogen.sh')
+      shell: C:\cygwin\bin\bash.exe -lc
 
-      - name: Build LibreOffice (Tellesoft Office)
-        shell: cmd
-        run: |
-          call "C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\Tools\VsDevCmd.bat" && ^
-          C:\cygwin\bin\bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && make"
+    - name: Run autogen.sh using Cygwin + Visual Studio
+      run: |
+        call "C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\Tools\VsDevCmd.bat" &&
+        C:\cygwin\bin\bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && ./autogen.sh --with-theme=colibre --srcdir=$(cygpath -u '${{ github.workspace }}') --enable-option-checking=fatal"
+      shell: cmd
 
-      - name: Create MSI Installer (instsetoo_native)
-        shell: cmd
-        run: |
-          call "C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\Tools\VsDevCmd.bat" && ^
-          C:\cygwin\bin\bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && make package"
+    - name: Build LibreOffice (Tellesoft Office)
+      run: |
+        C:\cygwin\bin\bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && make"
+      shell: cmd
 
-      - name: Rename and move MSI
-        shell: bash
-        run: |
-          mkdir -p output
-          find instdir -name "*.msi" -exec cp {} output/TellesoftOffice.msi \;
+    - name: Create MSI Installer (instsetoo_native)
+      run: |
+        C:\cygwin\bin\bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && make MSI_PACKAGE=1"
+      shell: cmd
 
-      - name: Upload MSI artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: TellesoftOffice
-          path: output/TellesoftOffice.msi
+    - name: Rename and move MSI
+      run: |
+        mkdir -p output
+        move instdir\*.msi output\TellesoftOffice.msi
+      shell: cmd
+
+    - name: Upload MSI artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: TellesoftOfficeInstaller
+        path: output/TellesoftOffice.msi
