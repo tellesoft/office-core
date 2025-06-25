@@ -1,51 +1,46 @@
-name: Build LibreOffice (Tellesoft)
+name: build
 
 on:
   push:
-    branches: [ master ]
+    branches: [master]
   pull_request:
-    branches: [ master ]
+    branches: [master]
 
 jobs:
   build:
     runs-on: windows-latest
 
     steps:
-    - name: Checkout source code
-      uses: actions/checkout@v4
+      - name: Checkout source code
+        uses: actions/checkout@v4
 
-    - name: Install Cygwin and required packages
-      run: |
-        choco install -y cygwin
-        & 'C:\ProgramData\chocolatey\bin\cygwin.exe' -q -P \
-          git,make,gcc-core,gcc-g++,perl,python3,autoconf,automake \
-          bison,flex,unzip,zip,diffutils,patch,tar,gawk,libtool,gettext
+      - name: Install Cygwin and required packages
+        run: |
+          curl -L -o cygwin-setup.exe https://cygwin.com/setup-x86_64.exe
+          ./cygwin-setup.exe -q -P git,make,gcc-core,gcc-g++,perl,python3,autoconf,automake,libtool,libxslt,wget,zip,unzip,tar,bzip2,xz
 
-    - name: Prepare autogen.input
-      run: echo '--with-theme=colibre' > autogen.input
+      - name: Prepare autogen.input
+        run: echo '--with-theme=colibre' > autogen.input
 
-    - name: Run autogen.sh using Cygwin
-      shell: cmd
-      run: |
-        C:\tools\cygwin\bin\bash -lc "cd $(cygpath -u '${{ github.workspace }}') && ./autogen.sh"
+      - name: Run autogen.sh using Cygwin
+        run: |
+          C:\cygwin64\bin\bash -lc "cd $(cygpath -u '${{ github.workspace }}') && ./autogen.sh"
 
-    - name: Build LibreOffice (Tellesoft Office)
-      shell: cmd
-      run: |
-        C:\tools\cygwin\bin\bash -lc "cd $(cygpath -u '${{ github.workspace }}') && make build-nocheck"
+      - name: Build LibreOffice (Tellesoft Office)
+        run: |
+          C:\cygwin64\bin\bash -lc "cd $(cygpath -u '${{ github.workspace }}') && make build-nocheck -j$(nproc)"
 
-    - name: Create MSI Installer (instsetoo_native)
-      shell: cmd
-      run: |
-        C:\tools\cygwin\bin\bash -lc "cd $(cygpath -u '${{ github.workspace }}/instsetoo_native') && make"
+      - name: Create MSI Installer (instsetoo_native)
+        run: |
+          C:\cygwin64\bin\bash -lc "cd $(cygpath -u '${{ github.workspace }}') && cd instsetoo_native && make -j$(nproc)"
 
-    - name: Rename and move MSI
-      run: |
-        mkdir output
-        copy instsetoo_native\win\msi\install\en-US\LibreOffice_*.msi output\TellesoftOffice.msi
+      - name: Rename and move MSI
+        run: |
+          mkdir output
+          Get-ChildItem -Recurse -Filter '*.msi' | Where-Object { $_.Name -like '*.msi' } | Copy-Item -Destination output\TellesoftOffice.msi -Force
 
-    - name: Upload TellesoftOffice.msi
-      uses: actions/upload-artifact@v4
-      with:
-        name: TellesoftOffice
-        path: output/TellesoftOffice.msi
+      - name: Upload TellesoftOffice.msi
+        uses: actions/upload-artifact@v4
+        with:
+          name: TellesoftOffice
+          path: output/TellesoftOffice.msi
