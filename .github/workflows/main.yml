@@ -42,6 +42,11 @@ jobs:
             pkg-config
             dos2unix
 
+      - name: Fix /bin/sh in Cygwin to point to bash
+        run: |
+          C:\cygwin\bin\bash.exe -lc "cd /bin && ln -sf bash sh && echo 'Fixed /bin/sh → bash'"
+        shell: cmd
+
       - name: Convert all *.sh scripts to Unix (LF) format
         run: |
           C:\cygwin\bin\bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && find . -type f -name '*.sh' -exec dos2unix {} \;"
