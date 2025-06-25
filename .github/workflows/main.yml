@@ -11,61 +11,43 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - name: Checkout source code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
+      - name: Checkout source code
+        uses: actions/checkout@v4
 
-    - name: Configure Git to use LF endings
-      run: |
-        git config --global core.autocrlf input
+      - name: Install Cygwin with required packages
+        uses: cygwin/cygwin-install-action@v4
+        with:
+          packages: >-
+            git make gcc-core gcc-g++ perl python3 autoconf automake
+            libtool gettext pkg-config m4 unzip zip tar bison flex
 
-    - name: Convert line endings of autogen.sh to LF
-      run: |
-        (Get-Content autogen.sh) | Set-Content -NoNewline autogen.sh
-      shell: pwsh
+      - name: Prepare autogen.input
+        run: echo '--with-theme=colibre' > autogen.input
+        shell: bash
 
-    - name: Install Cygwin with required packages
-      uses: cygwin/cygwin-install-action@v4
-      with:
-        packages: >-
-          git make gcc-core gcc-g++ perl python3 autoconf automake
-          libtool gettext pkg-config m4 unzip zip tar bison flex
+      - name: Run autogen.sh using Cygwin
+        run: |
+          C:/tools/cygwin/bin/bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && ./autogen.sh"
+        shell: cmd
 
-    - name: Prepare autogen.input
-      run: echo '--with-theme=colibre' > autogen.input
-      shell: bash
+      - name: Build LibreOffice (Tellesoft Office)
+        run: |
+          C:/tools/cygwin/bin/bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && make build-nocheck"
+        shell: cmd
 
-    - name: Fix permissions on configure scripts
-      run: |
-        chmod +x autogen.sh
-        find . -name config.sub -exec chmod +x {} \;
-        find . -name config.guess -exec chmod +x {} \;
-      shell: bash
+      - name: Create MSI Installer (instsetoo_native)
+        run: |
+          C:/tools/cygwin/bin/bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && make instsetoo_native"
+        shell: cmd
 
-    - name: Run autogen.sh using Cygwin
-      run: |
-        C:\cygwin\bin\bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && ./autogen.sh"
-      shell: cmd
+      - name: Rename and move MSI
+        run: |
+          mkdir output
+          copy workdir\instsetoo_native\install\en-US\LibreOffice_*.msi output\TellesoftOffice.msi
+        shell: cmd
 
-    - name: Build LibreOffice (Tellesoft Office)
-      run: |
-        C:\cygwin\bin\bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && make build-nocheck"
-      shell: cmd
-
-    - name: Create MSI Installer (instsetoo_native)
-      run: |
-        C:\cygwin\bin\bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && make instsetoo_native"
-      shell: cmd
-
-    - name: Rename and move MSI
-      run: |
-        mkdir output
-        copy workdir\instsetoo_native\install\en-US\LibreOffice_*.msi output\TellesoftOffice.msi
-      shell: cmd
-
-    - name: Upload TellesoftOffice.msi
-      uses: actions/upload-artifact@v4
-      with:
-        name: TellesoftOffice
-        path: output/TellesoftOffice.msi
+      - name: Upload TellesoftOffice.msi
+        uses: actions/upload-artifact@v4
+        with:
+          name: TellesoftOffice
+          path: output/TellesoftOffice.msi
