@@ -1,4 +1,4 @@
-name: Build Tellesoft Office (Windows)
+name: Build LibreOffice (Windows)
 
 on:
   push:
@@ -23,15 +23,7 @@ jobs:
           dos2unix wget
 
     - name: Add Cygwin to PATH
-      shell: bash
-      run: echo "C:/cygwin/bin" >> $GITHUB_PATH
-
-    - name: Fix /bin/sh symlink for Cygwin
-      shell: bash
-      run: |
-        if [ ! -e /bin/sh ]; then
-          ln -s /bin/bash /bin/sh
-        fi
+      run: echo "C:\\cygwin\\bin" >> $env:GITHUB_PATH
 
     - name: Convert line endings (fix CRLF issues)
       shell: bash
@@ -40,14 +32,23 @@ jobs:
           dos2unix ./autogen.sh
         fi
 
+    - name: Fix /bin/sh symlink for Cygwin
+      shell: bash
+      run: |
+        if [ ! -f /bin/sh ]; then
+          ln -s /bin/bash /bin/sh
+        fi
+
     - name: Install LibreOffice MSVC-compatible make
       shell: bash
       run: |
-        wget -O /tmp/make.exe https://dev-www.libreoffice.org/bin/cygwin/make-4.2.1-msvc.exe
+        wget -O /tmp/make-msvc.exe https://dev-www.libreoffice.org/bin/cygwin/make-4.2.1-msvc.exe
         mkdir -p /opt/lo/bin
-        mv /tmp/make.exe /opt/lo/bin/make.exe
+        mv /tmp/make-msvc.exe /opt/lo/bin/make.exe
         chmod +x /opt/lo/bin/make.exe
-        echo "/opt/lo/bin" >> $GITHUB_PATH
+        echo "/opt/lo/bin" >> ~/.bash_profile
+        echo "export PATH=/opt/lo/bin:\$PATH" >> ~/.bash_profile
+        source ~/.bash_profile
 
     - name: Prepare autogen.input
       shell: bash
@@ -56,37 +57,46 @@ jobs:
     - name: Set up Java (Temurin JDK 17)
       uses: actions/setup-java@v3
       with:
-        distribution: 'temurin'
-        java-version: '17'
+        distribution: temurin
+        java-version: 17
 
     - name: Set up MSVC environment (VS 2022)
-      shell: cmd
-      run: |
-        call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: x64
 
     - name: Run autogen.sh using Cygwin + Visual Studio
       shell: cmd
       run: |
-        C:\cygwin\bin\bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && ./autogen.sh --with-theme=colibre"
+        "C:\cygwin\bin\bash.exe" -lc "
+          cd $(cygpath -u '${{ github.workspace }}') &&
+          ./autogen.sh --with-theme=colibre --enable-option-checking=fatal
+        "
 
     - name: Build LibreOffice (Tellesoft Office)
       shell: cmd
       run: |
-        C:\cygwin\bin\bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && make"
+        "C:\cygwin\bin\bash.exe" -lc "
+          cd $(cygpath -u '${{ github.workspace }}') &&
+          make
+        "
 
     - name: Create MSI Installer (instsetoo_native)
       shell: cmd
       run: |
-        C:\cygwin\bin\bash.exe -lc "cd $(cygpath -u '${{ github.workspace }}') && cd instsetoo_native && make"
+        "C:\cygwin\bin\bash.exe" -lc "
+          cd $(cygpath -u '${{ github.workspace }}') &&
+          make package
+        "
 
     - name: Rename and move MSI
       shell: bash
       run: |
-        mkdir -p dist
-        find ./instdir -name '*.msi' -exec cp {} ./dist/TellesoftOffice.msi \;
+        mkdir -p output
+        find ./instdir -name "*.msi" -exec cp {} ./output/TellesoftOffice.msi \;
 
     - name: Upload MSI artifact
       uses: actions/upload-artifact@v4
       with:
-        name: TellesoftOfficeInstaller
-        path: dist/TellesoftOffice.msi
+        name: TellesoftOffice
+        path: output/TellesoftOffice.msi
